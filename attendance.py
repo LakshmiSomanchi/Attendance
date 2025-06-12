@@ -6,7 +6,7 @@ import json
 from airtable import Airtable
 
 # --- Configuration ---
-TABLE_NAME = "Attendance Log" # This MUST match your table name in Airtable
+TABLE_NAME = "CRP/FA Attendance Table" # This MUST match your table name in Airtable
 
 # Lists of CRP and FA names
 CRP_NAMES = [
