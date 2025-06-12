@@ -49,8 +49,8 @@ ALL_PERSONS = sorted(CRP_NAMES + FA_NAMES)
 @st.cache_resource
 def get_airtable_client():
     try:
-        api_key = st.secrets["airtable"]["api_key"]
-        base_id = st.secrets["airtable"]["base_id"]
+        api_key = st.secrets["airtable"]["patBwkcwvxNkYCdzQ"]
+        base_id = st.secrets["airtable"]["apprSqQGEZIMMrpSD"]
         return Airtable(base_id, TABLE_NAME, api_key)
     except KeyError:
         st.error("Missing Airtable API Key or Base ID in Streamlit secrets.")
