@@ -2,10 +2,11 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import datetime
-import json # For handling potential JSON from JS
+import json
+from airtable import Airtable
 
 # --- Configuration ---
-ATTENDANCE_FILE = 'attendance_log.xlsx'
+TABLE_NAME = "Attendance Log" # This MUST match your table name in Airtable
 
 CRP_NAMES = [
     "Dhananjay Dewar", "Mahendra Tayde", "Shrihari Sontakke", "Roshan Ingle",
@@ -41,49 +42,66 @@ FA_NAMES = [
     "Simral Kilnake", "Shrikant Bajare"
 ]
 
-ALL_PERSONS = sorted(CRP_NAMES + FA_NAMES) # Combine and sort for display
+ALL_PERSONS = sorted(CRP_NAMES + FA_NAMES)
 
-# --- Functions for Attendance Management (Local File System) ---
-
-def load_attendance_data():
-    """Loads attendance data from the Excel file or creates a new DataFrame if it doesn't exist."""
-    # This data will NOT persist across app restarts on Streamlit Cloud.
-    # It's primarily for a demonstration or single-session use.
-    if os.path.exists(ATTENDANCE_FILE):
-        try:
-            return pd.read_excel(ATTENDANCE_FILE)
-        except Exception as e:
-            st.warning(f"Could not load attendance file: {e}. Starting with an empty log.")
-            return pd.DataFrame(columns=['Timestamp', 'Person', 'Type', 'Status', 'Photo_Uploaded', 'Latitude', 'Longitude'])
-    else:
-        return pd.DataFrame(columns=['Timestamp', 'Person', 'Type', 'Status', 'Photo_Uploaded', 'Latitude', 'Longitude'])
-
-def save_attendance_data(df):
-    """Saves the DataFrame to the Excel file.
-    WARNING: This data will be lost on Streamlit Cloud app restarts.
-    """
+# --- Airtable Connection ---
+@st.cache_resource
+def get_airtable_client():
     try:
-        df.to_excel(ATTENDANCE_FILE, index=False)
-        # st.success("Attendance data saved to ephemeral storage.") # Can be too verbose
+        api_key = st.secrets["airtable"]["api_key"]
+        base_id = st.secrets["airtable"]["base_id"]
+        return Airtable(base_id, TABLE_NAME, api_key)
+    except KeyError:
+        st.error("Airtable API Key or Base ID not found in Streamlit secrets. Please configure `.streamlit/secrets.toml`.")
+        st.stop()
     except Exception as e:
-        st.error(f"Error saving attendance data to ephemeral file: {e}")
+        st.error(f"Error connecting to Airtable: {e}")
+        st.stop()
+
+# --- Functions for Attendance Management (Airtable) ---
+
+@st.cache_data(ttl=60)
+def load_attendance_data_from_airtable():
+    """Loads attendance data from Airtable."""
+    airtable = get_airtable_client()
+    try:
+        records = airtable.get_all()
+        data = []
+        for record in records:
+            record_data = record['fields']
+            record_data['record_id'] = record['id']
+            data.append(record_data)
+
+        df = pd.DataFrame(data)
+
+        expected_cols = ['Timestamp', 'Person', 'Type', 'Status', 'Photo_Uploaded', 'Latitude', 'Longitude', 'record_id']
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = None
+
+        if 'Timestamp' in df.columns:
+            df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
+
+        return df
+    except Exception as e:
+        st.error(f"Could not load attendance data from Airtable: {e}")
+        return pd.DataFrame(columns=['Timestamp', 'Person', 'Type', 'Status', 'Photo_Uploaded', 'Latitude', 'Longitude', 'record_id'])
 
 def mark_attendance(person_name, person_type, status, photo_info="No Photo", lat=None, lon=None):
-    """Marks attendance for a given person."""
-    if 'df' not in st.session_state:
-        st.session_state.df = load_attendance_data()
-
-    df = st.session_state.df
+    """Marks attendance for a given person in Airtable (Create operation)."""
+    airtable = get_airtable_client()
     now = datetime.now()
     timestamp_str = now.strftime('%Y-%m-%d %H:%M:%S')
 
-    # Check if attendance is already marked for today for this person
-    date_today = now.strftime('%Y-%m-%d')
-    if not df[(df['Timestamp'].str.startswith(date_today)) & (df['Person'] == person_name)].empty:
-        st.warning(f"Attendance for **{person_name}** has already been marked today ({date_today}). Skipping.")
-        return False # Indicate that it was already marked
+    st.cache_data.clear()
+    current_df = load_attendance_data_from_airtable()
 
-    new_entry = pd.DataFrame([{
+    date_today = now.strftime('%Y-%m-%d')
+    if 'Timestamp' in current_df.columns and not current_df[(current_df['Timestamp'].dt.strftime('%Y-%m-%d') == date_today) & (current_df['Person'] == person_name)].empty:
+        st.warning(f"Attendance for **{person_name}** has already been marked today ({date_today}). Skipping.")
+        return False
+
+    new_record = {
         'Timestamp': timestamp_str,
         'Person': person_name,
         'Type': person_type,
@@ -91,16 +109,43 @@ def mark_attendance(person_name, person_type, status, photo_info="No Photo", lat
         'Photo_Uploaded': photo_info,
         'Latitude': lat,
         'Longitude': lon
-    }])
-    st.session_state.df = pd.concat([df, new_entry], ignore_index=True)
-    save_attendance_data(st.session_state.df)
-    st.success(f"Attendance marked for **{person_name}** as **{status}**.")
-    return True # Indicate successful marking
+    }
+
+    try:
+        airtable.insert(new_record)
+        st.success(f"Attendance marked for **{person_name}** as **{status}** and saved to Airtable.")
+        st.cache_data.clear()
+        return True
+    except Exception as e:
+        st.error(f"Error marking attendance in Airtable: {e}")
+        return False
+
+def update_record_in_airtable(record_id, updated_fields):
+    """Updates an existing record in Airtable."""
+    airtable = get_airtable_client()
+    try:
+        airtable.update(record_id, updated_fields)
+        st.success(f"Record {record_id} updated successfully in Airtable.")
+        st.cache_data.clear()
+        return True
+    except Exception as e:
+        st.error(f"Error updating record {record_id} in Airtable: {e}")
+        return False
+
+def delete_record_from_airtable(record_id):
+    """Deletes a record from Airtable."""
+    airtable = get_airtable_client()
+    try:
+        airtable.delete(record_id)
+        st.success(f"Record {record_id} deleted successfully from Airtable.")
+        st.cache_data.clear()
+        return True
+    except Exception as e:
+        st.error(f"Error deleting record {record_id} from Airtable: {e}")
+        return False
+
 
 # --- Geolocation JavaScript Component ---
-# This JavaScript attempts to get the user's current location from their browser.
-# It then sets query parameters in the URL, which causes Streamlit to rerun and
-# allows the Python script to read those parameters.
 GET_LOCATION_JS = """
 <script>
     function getLocation() {
@@ -143,12 +188,11 @@ GET_LOCATION_JS = """
     }
 
     function updateStreamlitLocation(lat, lon, status) {
-        // Use Streamlit's query parameters to send data back
         const url = new URL(window.location);
         url.searchParams.set('lat', lat !== null ? lat : 'null');
         url.searchParams.set('lon', lon !== null ? lon : 'null');
         url.searchParams.set('loc_status', status);
-        window.location.href = url.toString(); // Reruns the Streamlit app
+        window.location.href = url.toString();
     }
 </script>
 <button onclick="getLocation()">Get My Location</button>
@@ -161,18 +205,13 @@ st.set_page_config(layout="centered", page_title="CRP/FA Attendance System", pag
 st.title("📝 CRP/FA Attendance System")
 st.markdown("---")
 
-st.warning("""
-    **IMPORTANT: Data Persistence Warning!**\n
-    This app currently stores attendance data in an **ephemeral file on the server.**
-    This means **all data will be lost** when the app restarts (which happens frequently on Streamlit Cloud due to inactivity or updates).
-    For persistent storage, you would need to integrate with a database like Google Sheets, Firebase, or a cloud storage service (requiring API keys/secrets).
+st.info("""
+    **Data Persistence:** This app uses **Airtable** for persistent data storage.
+    Your attendance records will be saved and will not be lost when the app restarts.
+    Ensure your Airtable Base and `secrets.toml` are correctly configured.
 """)
 st.markdown("---")
 
-
-# Initialize DataFrame in session state if not already present
-if 'df' not in st.session_state:
-    st.session_state.df = load_attendance_data()
 
 # Initialize session state for logged-in user and location
 if 'logged_in_person' not in st.session_state:
@@ -183,6 +222,10 @@ if 'current_lon' not in st.session_state:
     st.session_state['current_lon'] = None
 if 'location_status' not in st.session_state:
     st.session_state['location_status'] = "Not obtained yet."
+if 'selected_record_id' not in st.session_state:
+    st.session_state['selected_record_id'] = None
+if 'selected_record_data' not in st.session_state:
+    st.session_state['selected_record_data'] = None
 
 # --- Check for location data from URL query parameters ---
 query_params = st.query_params
@@ -195,14 +238,17 @@ if 'lat' in query_params and 'lon' in query_params:
         st.session_state['current_lat'] = lat
         st.session_state['current_lon'] = lon
         st.session_state['location_status'] = loc_status
-        # Clear query params to prevent re-triggering on subsequent runs
-        st.query_params.clear() # This will rerun the app again
+
+        if query_params.get('lat') is not None:
+             st.query_params.clear()
+
 
     except ValueError:
         st.session_state['location_status'] = "Error parsing location data."
         st.session_state['current_lat'] = None
         st.session_state['current_lon'] = None
         st.query_params.clear()
+
 
 # --- User Login / Selection ---
 if st.session_state['logged_in_person'] is None:
@@ -214,19 +260,21 @@ if st.session_state['logged_in_person'] is None:
     )
     if selected_name != "Select your name":
         st.session_state['logged_in_person'] = selected_name
-        st.rerun() # Rerun to update the UI with the logged-in user
+        st.rerun()
 
 else:
     st.sidebar.header(f"Logged in as: {st.session_state['logged_in_person']}")
     if st.sidebar.button("Log Out"):
         st.session_state['logged_in_person'] = None
-        st.session_state['current_lat'] = None # Clear location on logout
+        st.session_state['current_lat'] = None
         st.session_state['current_lon'] = None
         st.session_state['location_status'] = "Not obtained yet."
+        st.session_state['selected_record_id'] = None
+        st.session_state['selected_record_data'] = None
         st.rerun()
 
     # --- Tabbed Interface ---
-    tab1, tab2 = st.tabs(["Mark My Attendance", "View Attendance Log"])
+    tab1, tab2 = st.tabs(["Mark My Attendance", "Manage Attendance Log"])
 
     with tab1:
         st.header(f"Mark Attendance for {st.session_state['logged_in_person']}")
@@ -238,13 +286,11 @@ else:
         photo_info_for_log = "No Photo Uploaded"
         if uploaded_file is not None:
             st.success("Photo uploaded successfully! (Note: Actual photo not stored persistently in this demo).")
-            # For a real app, you would upload `uploaded_file` to cloud storage (e.g., S3, Google Drive) here
-            # and store its public URL in the sheet.
             photo_info_for_log = f"Photo uploaded at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             st.image(uploaded_file, caption='Uploaded Photo', width=200)
 
         st.subheader("2. Get Your Location")
-        st.html(GET_LOCATION_JS) # Embed the JavaScript to get location
+        st.html(GET_LOCATION_JS)
 
         if st.session_state['current_lat'] is not None and st.session_state['current_lon'] is not None:
             st.info(f"Location: Latitude {st.session_state['current_lat']:.4f}, Longitude {st.session_state['current_lon']:.4f}")
@@ -256,7 +302,7 @@ else:
         status_option = st.radio(
             "What is your attendance status?",
             ["Present", "Absent", "On Leave"],
-            index=0, # Default to Present
+            index=0,
             key="my_status_radio",
             horizontal=True
         )
@@ -270,20 +316,26 @@ else:
                 st.session_state['current_lat'],
                 st.session_state['current_lon']
             )
-            # Clear photo and location inputs after marking attendance
-            # Note: This might not fully clear the file_uploader visually
-            # To truly clear, you'd need to re-render the widget with a new key,
-            # which is complex with state management.
             st.session_state['current_lat'] = None
             st.session_state['current_lon'] = None
             st.session_state['location_status'] = "Not obtained yet."
-            st.rerun() # Rerun to clear location and photo
+            st.rerun()
+
 
     with tab2:
-        st.header("View Attendance Log")
-        st.write("View the attendance history. **Remember, this data is not persistent across app restarts.**")
+        st.header("Manage Attendance Log")
+        st.write("View, edit, or delete attendance records from Airtable.")
+        st.markdown("---")
 
-        # Filter option for viewing log
+        if st.button("Refresh Attendance Data from Airtable", key="refresh_button"):
+            st.cache_data.clear()
+            st.session_state['selected_record_id'] = None
+            st.session_state['selected_record_data'] = None
+            st.info("Data refreshed from Airtable.")
+            st.rerun()
+
+        df_display = load_attendance_data_from_airtable()
+
         log_filter_options = ["All Records", st.session_state['logged_in_person']]
         selected_log_view = st.selectbox(
             "Show records for:",
@@ -291,19 +343,102 @@ else:
             key="log_view_selector"
         )
 
-        df_to_display = st.session_state.df
-        if selected_log_view != "All Records":
-            df_to_display = st.session_state.df[st.session_state.df['Person'] == selected_log_view]
+        df_to_display = df_display
+        if selected_log_view != "All Records" and not df_display.empty:
+            df_to_display = df_display[df_display['Person'] == selected_log_view]
 
+        st.subheader("Current Records:")
         if not df_to_display.empty:
-            # Sort by Timestamp descending
-            df_to_display_sorted = df_to_display.sort_values(by='Timestamp', ascending=False)
-            st.dataframe(df_to_display_sorted, use_container_width=True)
+            if 'Timestamp' in df_to_display.columns:
+                 df_to_display_sorted = df_to_display.sort_values(by='Timestamp', ascending=False)
+            else:
+                 df_to_display_sorted = df_to_display
+
+            df_for_display = df_to_display_sorted.drop(columns=['record_id'], errors='ignore')
+            selected_rows = st.dataframe(
+                df_for_display,
+                use_container_width=True,
+                hide_index=True,
+                selection_mode='single-row'
+            )
+
+            if selected_rows and selected_rows['selection']['rows']:
+                selected_index_in_df = selected_rows['selection']['rows'][0]
+                st.session_state['selected_record_data'] = df_to_display_sorted.iloc[selected_index_in_df].to_dict()
+                st.session_state['selected_record_id'] = st.session_state['selected_record_data']['record_id']
+
+                st.subheader(f"Selected Record (ID: {st.session_state['selected_record_id']})")
+                st.json(st.session_state['selected_record_data'])
+
+                st.markdown("---")
+                st.subheader("Edit Selected Record")
+                with st.form("edit_record_form"):
+                    current_status = st.session_state['selected_record_data'].get('Status', 'Absent')
+                    current_photo_info = st.session_state['selected_record_data'].get('Photo_Uploaded', 'No Photo Uploaded')
+                    current_lat = st.session_state['selected_record_data'].get('Latitude')
+                    current_lon = st.session_state['selected_record_data'].get('Longitude')
+
+                    new_status = st.radio(
+                        "Update Status:",
+                        ["Present", "Absent", "On Leave"],
+                        index=["Present", "Absent", "On Leave"].index(current_status) if current_status in ["Present", "Absent", "On Leave"] else 0,
+                        key="edit_status"
+                    )
+                    new_photo_info = st.text_input("Update Photo Info (e.g., 'Photo Updated' or 'Link'):", value=current_photo_info, key="edit_photo_info")
+                    new_lat = st.text_input("Update Latitude:", value=str(current_lat) if current_lat is not None else "", key="edit_lat")
+                    new_lon = st.text_input("Update Longitude:", value=str(current_lon) if current_lon is not None else "", key="edit_lon")
+
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        update_button = st.form_submit_button("Update Record", type="primary")
+                    with col2:
+                        cancel_edit_button = st.form_submit_button("Cancel Edit")
+
+                    if update_button:
+                        try:
+                            lat_val = float(new_lat) if new_lat else None
+                            lon_val = float(new_lon) if new_lon else None
+                        except ValueError:
+                            st.error("Latitude and Longitude must be numbers.")
+                            st.stop()
+
+                        updated_fields = {
+                            'Status': new_status,
+                            'Photo_Uploaded': new_photo_info,
+                            'Latitude': lat_val,
+                            'Longitude': lon_val
+                        }
+                        if update_record_in_airtable(st.session_state['selected_record_id'], updated_fields):
+                            st.session_state['selected_record_id'] = None
+                            st.session_state['selected_record_data'] = None
+                            st.rerun()
+                    if cancel_edit_button:
+                        st.session_state['selected_record_id'] = None
+                        st.session_state['selected_record_data'] = None
+                        st.rerun()
+
+                st.markdown("---")
+                st.subheader("Delete Selected Record")
+                if st.button("Delete Record", type="secondary"):
+                    confirm_delete = st.warning(f"Are you sure you want to delete record {st.session_state['selected_record_id']} for {st.session_state['selected_record_data'].get('Person')}?")
+                    if st.button("Yes, Delete Permanently", key="confirm_delete_btn"):
+                        if delete_record_from_airtable(st.session_state['selected_record_id']):
+                            st.session_state['selected_record_id'] = None
+                            st.session_state['selected_record_data'] = None
+                            st.rerun()
+                    elif st.button("No, Cancel Delete", key="cancel_delete_btn"):
+                        st.info("Delete operation cancelled.")
+                        st.session_state['selected_record_id'] = None
+                        st.session_state['selected_record_data'] = None
+                        st.rerun()
+
+            else:
+                st.info("Select a row in the table above to edit or delete a record.")
         else:
-            st.info("No attendance records found yet for the selected view.")
+            st.info("No attendance records found yet. Mark some attendance first!")
 
         st.markdown("---")
-        st.subheader("Download Current Attendance Log")
+        st.subheader("Download Full Attendance Log")
 
         @st.cache_data
         def convert_df_to_excel_bytes(df):
@@ -314,8 +449,8 @@ else:
             processed_data = output.getvalue()
             return processed_data
 
-        if 'df' in st.session_state and not st.session_state.df.empty:
-            excel_data = convert_df_to_excel_bytes(st.session_state.df)
+        if not df_display.empty:
+            excel_data = convert_df_to_excel_bytes(df_display)
             st.download_button(
                 label="Download Full Attendance Log (Excel)",
                 data=excel_data,
