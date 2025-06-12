@@ -8,6 +8,7 @@ from airtable import Airtable
 # --- Configuration ---
 TABLE_NAME = "Attendance Log" # This MUST match your table name in Airtable
 
+# Lists of CRP and FA names
 CRP_NAMES = [
     "Dhananjay Dewar", "Mahendra Tayde", "Shrihari Sontakke", "Roshan Ingle",
     "Nikhil Dhenge", "Pradip Gawande", "Manoj Thakre", "Amol Bute",
@@ -45,7 +46,7 @@ FA_NAMES = [
 ALL_PERSONS = sorted(CRP_NAMES + FA_NAMES)
 
 # --- Airtable Connection ---
-@st.cache_resource
+@st.cache_resource # Cache the Airtable connection to avoid re-initializing on every rerun
 def get_airtable_client():
     try:
         api_key = st.secrets["airtable"]["api_key"]
@@ -53,32 +54,35 @@ def get_airtable_client():
         return Airtable(base_id, TABLE_NAME, api_key)
     except KeyError:
         st.error("Airtable API Key or Base ID not found in Streamlit secrets. Please configure `.streamlit/secrets.toml`.")
-        st.stop()
+        st.stop() # Stop the app if secrets are missing
     except Exception as e:
         st.error(f"Error connecting to Airtable: {e}")
         st.stop()
 
 # --- Functions for Attendance Management (Airtable) ---
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=60) # Cache data for 60 seconds to reduce API calls
 def load_attendance_data_from_airtable():
     """Loads attendance data from Airtable."""
     airtable = get_airtable_client()
     try:
-        records = airtable.get_all()
+        records = airtable.get_all() # Get all records from the table
+        # Extract fields and the 'id' of each record
         data = []
         for record in records:
             record_data = record['fields']
-            record_data['record_id'] = record['id']
+            record_data['record_id'] = record['id'] # Store Airtable's unique record ID
             data.append(record_data)
 
         df = pd.DataFrame(data)
 
+        # Ensure all expected columns exist, fill missing with None/empty string
         expected_cols = ['Timestamp', 'Person', 'Type', 'Status', 'Photo_Uploaded', 'Latitude', 'Longitude', 'record_id']
         for col in expected_cols:
             if col not in df.columns:
-                df[col] = None
+                df[col] = None # Or an appropriate default value
 
+        # Convert Timestamp column to datetime if possible for sorting
         if 'Timestamp' in df.columns:
             df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
 
@@ -93,14 +97,17 @@ def mark_attendance(person_name, person_type, status, photo_info="No Photo", lat
     now = datetime.now()
     timestamp_str = now.strftime('%Y-%m-%d %H:%M:%S')
 
-    st.cache_data.clear()
+    # Re-load data to check for today's attendance before marking
+    st.cache_data.clear() # Invalidate cache for the latest data for this check
     current_df = load_attendance_data_from_airtable()
 
+    # Check if attendance is already marked for today for this person
     date_today = now.strftime('%Y-%m-%d')
     if 'Timestamp' in current_df.columns and not current_df[(current_df['Timestamp'].dt.strftime('%Y-%m-%d') == date_today) & (current_df['Person'] == person_name)].empty:
         st.warning(f"Attendance for **{person_name}** has already been marked today ({date_today}). Skipping.")
         return False
 
+    # Prepare data for Airtable record
     new_record = {
         'Timestamp': timestamp_str,
         'Person': person_name,
@@ -114,7 +121,7 @@ def mark_attendance(person_name, person_type, status, photo_info="No Photo", lat
     try:
         airtable.insert(new_record)
         st.success(f"Attendance marked for **{person_name}** as **{status}** and saved to Airtable.")
-        st.cache_data.clear()
+        st.cache_data.clear() # Invalidate cache so next load gets the new data
         return True
     except Exception as e:
         st.error(f"Error marking attendance in Airtable: {e}")
@@ -126,7 +133,7 @@ def update_record_in_airtable(record_id, updated_fields):
     try:
         airtable.update(record_id, updated_fields)
         st.success(f"Record {record_id} updated successfully in Airtable.")
-        st.cache_data.clear()
+        st.cache_data.clear() # Invalidate cache
         return True
     except Exception as e:
         st.error(f"Error updating record {record_id} in Airtable: {e}")
@@ -138,7 +145,7 @@ def delete_record_from_airtable(record_id):
     try:
         airtable.delete(record_id)
         st.success(f"Record {record_id} deleted successfully from Airtable.")
-        st.cache_data.clear()
+        st.cache_data.clear() # Invalidate cache
         return True
     except Exception as e:
         st.error(f"Error deleting record {record_id} from Airtable: {e}")
@@ -188,11 +195,12 @@ GET_LOCATION_JS = """
     }
 
     function updateStreamlitLocation(lat, lon, status) {
+        // Use Streamlit's query parameters to send data back
         const url = new URL(window.location);
         url.searchParams.set('lat', lat !== null ? lat : 'null');
         url.searchParams.set('lon', lon !== null ? lon : 'null');
         url.searchParams.set('loc_status', status);
-        window.location.href = url.toString();
+        window.location.href = url.toString(); // Reruns the Streamlit app
     }
 </script>
 <button onclick="getLocation()">Get My Location</button>
