@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 import json
-from airtable import airtable
+from airtable import Airtable
 
 # --- Configuration ---
 TABLE_NAME = "CRP/FA Attendance Table"  # Must match Airtable table name
