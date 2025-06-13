@@ -3,9 +3,10 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import BytesIO
 import pytz # For accurate timezones
+import plotly.express as px # For interactive charts
 
 # --- Database Configuration ---
 DB_PATH = "attendance.db"
@@ -126,7 +127,6 @@ def init_db():
                 Type TEXT,
                 Status TEXT,
                 Photo_Uploaded TEXT,
-                -- Location_Description TEXT, -- Removed column
                 Latitude REAL,             -- Kept for potential future use or manual entry
                 Longitude REAL             -- Kept for potential future use or manual entry
             )
@@ -143,7 +143,7 @@ def load_attendance_data():
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
         return df
 
-def mark_attendance(person, person_type, status, photo_uploaded_indicator, lat=None, lon=None): # Removed location_description parameter
+def mark_attendance(person, person_type, status, photo_uploaded_indicator, lat=None, lon=None):
     """
     Marks attendance for a person, checking if they've already marked today.
     photo_uploaded_indicator will be a string 'Yes' or 'No'.
@@ -165,7 +165,6 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, lat=N
 
     with sqlite3.connect(DB_PATH) as conn:
         try:
-            # Removed Location_Description from INSERT statement
             conn.execute(f'''
                 INSERT INTO {TABLE_NAME} (Timestamp, Person, Type, Status, Photo_Uploaded, Latitude, Longitude)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -221,8 +220,17 @@ def convert_df_to_excel_bytes(df):
         df.to_excel(writer, index=False)
     return output.getvalue()
 
+def get_image_download_link(fig, filename, text):
+    """Generates a download link for a Plotly figure as a PNG image."""
+    img_bytes = fig.to_image(format="png", engine="kaleido") # Requires kaleido to be installed
+    return st.download_button(
+        label=text,
+        data=img_bytes,
+        file_name=filename,
+        mime="image/png"
+    )
 
-# --- Streamlit App Layout ---
+# --- Run DB init on load ---
 st.set_page_config(layout="centered", page_title="Field Worker Attendance")
 
 # Initialize database only once
@@ -253,8 +261,6 @@ else:
 st.markdown("---")
 st.subheader("Timestamp Details")
 st.info("The **Timestamp** will be automatically recorded when you submit your attendance.")
-
-# Removed manual input for a descriptive location
 
 
 # Photo Upload
@@ -288,7 +294,7 @@ attendance_status = st.radio(
 # lat and lon are passed as None, as they are not captured automatically in this setup
 if st.button("Submit Attendance"):
     if selected_person:
-        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, None, None) # Removed location_description parameter
+        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, None, None)
     else:
         st.error("Please select your name to mark attendance.")
 
@@ -305,9 +311,9 @@ if not df_attendance.empty:
 
     # Filter by date
     with col1:
-        start_date = st.date_input("Start Date", value=df_attendance['Timestamp'].min().date())
+        start_date = st.date_input("Start Date", value=df_attendance['Timestamp'].min().date() if not df_attendance.empty else datetime.now().date())
     with col2:
-        end_date = st.date_input("End Date", value=df_attendance['Timestamp'].max().date())
+        end_date = st.date_input("End Date", value=df_attendance['Timestamp'].max().date() if not df_attendance.empty else datetime.now().date())
     with col3:
         # Filter by person
         all_persons = sorted(df_attendance['Person'].unique())
@@ -318,7 +324,7 @@ if not df_attendance.empty:
         (df_attendance['Timestamp'].dt.date >= start_date) &
         (df_attendance['Timestamp'].dt.date <= end_date) &
         (df_attendance['Person'].isin(selected_persons_filter))
-    ]
+    ].copy() # Use .copy() to avoid SettingWithCopyWarning
 
     st.dataframe(filtered_df.sort_values(by="Timestamp", ascending=False), use_container_width=True)
 
@@ -330,6 +336,57 @@ if not df_attendance.empty:
         file_name="attendance_records.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+    st.markdown("---")
+
+    # --- Attendance Visualizations Section ---
+    st.header("Attendance Visualizations")
+
+    if not filtered_df.empty:
+        # Prepare data for charts - focus on 'Present' status
+        present_df = filtered_df[filtered_df['Status'] == 'Present']
+
+        if not present_df.empty:
+            # Daily Attendance Chart
+            st.subheader("Daily Attendance (Present Count)")
+            daily_attendance = present_df.groupby(present_df['Timestamp'].dt.date).size().reset_index(name='Count')
+            daily_attendance.columns = ['Date', 'Present Count']
+            
+            fig_daily = px.bar(
+                daily_attendance,
+                x='Date',
+                y='Present Count',
+                title='Daily Present Attendance Count',
+                labels={'Date': 'Date', 'Present Count': 'Number of Present FAs/CRPs'},
+                color_discrete_sequence=px.colors.qualitative.Plotly
+            )
+            fig_daily.update_xaxes(type='category') # Treat dates as categories to avoid gaps
+            st.plotly_chart(fig_daily, use_container_width=True)
+            get_image_download_link(fig_daily, "daily_attendance_chart.png", "Download Daily Chart as PNG")
+
+
+            # Weekly Attendance Chart
+            st.subheader("Weekly Attendance (Present Count)")
+            # Get the start of the week (Monday)
+            present_df['Week_Start'] = present_df['Timestamp'].apply(lambda x: x - timedelta(days=x.weekday()))
+            weekly_attendance = present_df.groupby('Week_Start').size().reset_index(name='Count')
+            weekly_attendance.columns = ['Week Start Date', 'Present Count']
+            weekly_attendance['Week Label'] = weekly_attendance['Week Start Date'].dt.strftime('Week of %Y-%m-%d')
+
+            fig_weekly = px.bar(
+                weekly_attendance.sort_values(by='Week Start Date'), # Ensure chronological order
+                x='Week Label',
+                y='Present Count',
+                title='Weekly Present Attendance Count',
+                labels={'Week Label': 'Week Starting', 'Present Count': 'Number of Present FAs/CRPs'},
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            st.plotly_chart(fig_weekly, use_container_width=True)
+            get_image_download_link(fig_weekly, "weekly_attendance_chart.png", "Download Weekly Chart as PNG")
+        else:
+            st.info("No 'Present' records in the filtered data to generate charts.")
+    else:
+        st.info("No records available in the selected date range or for selected persons to generate charts.")
 
     st.markdown("---")
 
@@ -351,7 +408,6 @@ if not df_attendance.empty:
             edit_status = st.selectbox("Status:", options=["Present", "On Leave", "Absent"], index=["Present", "On Leave", "Absent"].index(record_to_edit['Status']) if record_to_edit['Status'] in ["Present", "On Leave", "Absent"] else 0, key=f"edit_status_{selected_record_id}")
             edit_photo_uploaded = st.selectbox("Photo Uploaded:", options=["Yes", "No", "Photo Uploaded", "No Photo"], index=["Yes", "No", "Photo Uploaded", "No Photo"].index(record_to_edit['Photo_Uploaded']) if record_to_edit['Photo_Uploaded'] in ["Yes", "No", "Photo Uploaded", "No Photo"] else 1, key=f"edit_photo_{selected_record_id}")
             
-            # Removed Location_Description from edit section
             # Lat/Lon fields are still present for manual correction if needed, but not automatically filled
             edit_lat = st.number_input("Latitude:", value=float(record_to_edit['Latitude']) if pd.notna(record_to_edit['Latitude']) else 0.0, format="%.6f", key=f"edit_lat_{selected_record_id}")
             edit_lon = st.number_input("Longitude:", value=float(record_to_edit['Longitude']) if pd.notna(record_to_edit['Longitude']) else 0.0, format="%.6f", key=f"edit_lon_{selected_record_id}")
@@ -364,7 +420,6 @@ if not df_attendance.empty:
                         "Type": edit_type,
                         "Status": edit_status,
                         "Photo_Uploaded": edit_photo_uploaded,
-                        # Removed Location_Description from fields_to_update
                         "Latitude": edit_lat,
                         "Longitude": edit_lon
                     }
