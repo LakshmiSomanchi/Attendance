@@ -12,7 +12,7 @@ st.write("Python executable:", sys.executable)
 st.write(subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True).stdout)
 
 
-TABLE_NAME = "CRP_FA_Attendance_Table" 
+TABLE_NAME = "CRP/FA Attendance Table" 
 
 @st.cache_resource
 def get_airtable_client():
