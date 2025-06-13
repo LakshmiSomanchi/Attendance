@@ -1,12 +1,11 @@
-# --- sqlite_attendance_app.py ---
-
 import streamlit as st
 import pandas as pd
 import sqlite3
 from datetime import datetime, timedelta
 from io import BytesIO
 import pytz # For accurate timezones
-import plotly.express as px # For interactive charts
+
+# Removed: import plotly.express as px # For interactive charts
 
 # --- Database Configuration ---
 DB_PATH = "attendance.db"
@@ -200,7 +199,7 @@ def update_record(record_id, fields: dict):
         return False
 
 def delete_record(record_id):
-    """Deltes an attendance record by ID."""
+    """Deletes an attendance record by ID."""
     try:
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute(f"DELETE FROM {TABLE_NAME} WHERE id = ?", (record_id,))
@@ -220,15 +219,15 @@ def convert_df_to_excel_bytes(df):
         df.to_excel(writer, index=False)
     return output.getvalue()
 
-def get_image_download_link(fig, filename, text):
-    """Generates a download link for a Plotly figure as a PNG image."""
-    img_bytes = fig.to_image(format="png", engine="kaleido") # Requires kaleido to be installed
-    return st.download_button(
-        label=text,
-        data=img_bytes,
-        file_name=filename,
-        mime="image/png"
-    )
+# Removed: def get_image_download_link(fig, filename, text):
+# Removed:     """Generates a download link for a Plotly figure as a PNG image."""
+# Removed:     img_bytes = fig.to_image(format="png", engine="kaleido") # Requires kaleido to be installed
+# Removed:     return st.download_button(
+# Removed:         label=text,
+# Removed:         data=img_bytes,
+# Removed:         file_name=filename,
+# Removed:         mime="image/png"
+# Removed:     )
 
 # --- Run DB init on load ---
 st.set_page_config(layout="centered", page_title="Field Worker Attendance")
@@ -339,56 +338,10 @@ if not df_attendance.empty:
 
     st.markdown("---")
 
-    # --- Attendance Visualizations Section ---
-    st.header("Attendance Visualizations")
+    # Removed: --- Attendance Visualizations Section ---
+    # Removed: st.header("Attendance Visualizations")
+    # Removed: ... (all chart-related code)
 
-    if not filtered_df.empty:
-        # Prepare data for charts - focus on 'Present' status
-        present_df = filtered_df[filtered_df['Status'] == 'Present']
-
-        if not present_df.empty:
-            # Daily Attendance Chart
-            st.subheader("Daily Attendance (Present Count)")
-            daily_attendance = present_df.groupby(present_df['Timestamp'].dt.date).size().reset_index(name='Count')
-            daily_attendance.columns = ['Date', 'Present Count']
-            
-            fig_daily = px.bar(
-                daily_attendance,
-                x='Date',
-                y='Present Count',
-                title='Daily Present Attendance Count',
-                labels={'Date': 'Date', 'Present Count': 'Number of Present FAs/CRPs'},
-                color_discrete_sequence=px.colors.qualitative.Plotly
-            )
-            fig_daily.update_xaxes(type='category') # Treat dates as categories to avoid gaps
-            st.plotly_chart(fig_daily, use_container_width=True)
-            get_image_download_link(fig_daily, "daily_attendance_chart.png", "Download Daily Chart as PNG")
-
-
-            # Weekly Attendance Chart
-            st.subheader("Weekly Attendance (Present Count)")
-            # Get the start of the week (Monday)
-            present_df['Week_Start'] = present_df['Timestamp'].apply(lambda x: x - timedelta(days=x.weekday()))
-            weekly_attendance = present_df.groupby('Week_Start').size().reset_index(name='Count')
-            weekly_attendance.columns = ['Week Start Date', 'Present Count']
-            weekly_attendance['Week Label'] = weekly_attendance['Week Start Date'].dt.strftime('Week of %Y-%m-%d')
-
-            fig_weekly = px.bar(
-                weekly_attendance.sort_values(by='Week Start Date'), # Ensure chronological order
-                x='Week Label',
-                y='Present Count',
-                title='Weekly Present Attendance Count',
-                labels={'Week Label': 'Week Starting', 'Present Count': 'Number of Present FAs/CRPs'},
-                color_discrete_sequence=px.colors.qualitative.Set2
-            )
-            st.plotly_chart(fig_weekly, use_container_width=True)
-            get_image_download_link(fig_weekly, "weekly_attendance_chart.png", "Download Weekly Chart as PNG")
-        else:
-            st.info("No 'Present' records in the filtered data to generate charts.")
-    else:
-        st.info("No records available in the selected date range or for selected persons to generate charts.")
-
-    st.markdown("---")
 
     # --- Manage Records Section (Update/Delete) ---
     st.header("Manage Records (Admin Only)")
