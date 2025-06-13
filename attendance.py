@@ -128,7 +128,7 @@ def init_db():
                 Status TEXT,
                 Photo_Uploaded TEXT,
                 Latitude REAL,             -- Kept for potential future use or manual entry
-                Longitude REAL             -- Kept for potential future use or manual entry
+                Longitude REAL             -- Kept for potential future or manual entry
             )
         ''')
     st.session_state.db_initialized = True # Use session state to prevent re-initializing on every rerun
@@ -200,7 +200,7 @@ def update_record(record_id, fields: dict):
         return False
 
 def delete_record(record_id):
-    """Deletes an attendance record by ID."""
+    """Deltes an attendance record by ID."""
     try:
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute(f"DELETE FROM {TABLE_NAME} WHERE id = ?", (record_id,))
