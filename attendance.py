@@ -12,34 +12,102 @@ DB_PATH = "attendance.db"
 TABLE_NAME = "attendance"
 
 # --- Field Worker Data ---
-# Customize this list with your actual FA and CRP names.
+# Customizing this list with your actual FA and CRP names.
 # This list will be used to populate the dropdown for selecting a person.
 ALL_FIELD_WORKERS = [
-    {"name": "Anil Kumar", "role": "FA"},
-    {"name": "Bina Devi", "role": "FA"},
-    {"name": "Chandan Singh", "role": "CRP"},
-    {"name": "Deepa Sharma", "role": "FA"},
-    {"name": "Esha Gupta", "role": "CRP"},
-    {"name": "Faisal Khan", "role": "FA"},
-    {"name": "Gita Rani", "role": "CRP"},
-    {"name": "Harish Verma", "role": "FA"},
-    {"name": "Indira Prasad", "role": "CRP"},
-    {"name": "Jatin Kumar", "role": "FA"},
-    {"name": "Kavita Mishra", "role": "CRP"},
-    {"name": "Lalit Sharma", "role": "FA"},
-    {"name": "Mona Patel", "role": "CRP"},
-    {"name": "Naveen Reddy", "role": "FA"},
-    {"name": "Om Prakash", "role": "CRP"},
-    {"name": "Pooja Devi", "role": "FA"},
-    {"name": "Qasim Ahmed", "role": "CRP"},
-    {"name": "Ramesh Singh", "role": "FA"},
-    {"name": "Seema Yadav", "role": "CRP"},
-    {"name": "Tarun Joshi", "role": "FA"},
-    {"name": "Urmila Devi", "role": "CRP"},
-    {"name": "Vivek Mehta", "role": "FA"},
-    {"name": "Arti Rao", "role": "CRP"},
-    {"name": "Bhavesh Desai", "role": "FA"},
-    {"name": "Chetna Sharma", "role": "CRP"},
+    # CRP Names
+    {"name": "Dhananjay Dewar", "role": "CRP"},
+    {"name": "Mahendra Tayde", "role": "CRP"},
+    {"name": "Shrihari Sontakke", "role": "CRP"},
+    {"name": "Roshan Ingle", "role": "CRP"},
+    {"name": "Nikhil Dhenge", "role": "CRP"},
+    {"name": "Pradip Gawande", "role": "CRP"},
+    {"name": "Manoj Thakre", "role": "CRP"},
+    {"name": "Amol Bute", "role": "CRP"},
+    {"name": "Dhananjay Gawande", "role": "CRP"},
+    {"name": "Pawan Ingle", "role": "CRP"},
+    {"name": "Amardip Bunde", "role": "CRP"},
+    {"name": "Gopal Tarale", "role": "CRP"},
+    {"name": "Shital Jalmakar", "role": "CRP"},
+    {"name": "Prabhakar Wankhade", "role": "CRP"},
+    {"name": "Bhagyashri Ghawat", "role": "CRP"},
+    {"name": "Rangpara Shailesh", "role": "CRP"},
+    {"name": "Olakiya Ramesh", "role": "CRP"},
+    {"name": "Paraliya Akash", "role": "CRP"},
+    {"name": "Chauhan Ajay", "role": "CRP"},
+    {"name": "Bavliya Umesh", "role": "CRP"},
+    {"name": "Parmar Asmita", "role": "CRP"},
+    {"name": "Malkiya Amit", "role": "CRP"},
+    {"name": "Malkiya Pravin", "role": "CRP"},
+    {"name": "Rathod Rohit", "role": "CRP"},
+    {"name": "Chauhan Vijay", "role": "CRP"},
+    {"name": "Malkiya Yash", "role": "CRP"},
+    {"name": "Khetariya Ravat", "role": "CRP"},
+    {"name": "Olakiya Vaishali", "role": "CRP"},
+    {"name": "Vaghela Hasubhai", "role": "CRP"},
+    {"name": "Vaghela Bavnaben", "role": "CRP"},
+    {"name": "Sarvaiya Kinjalben", "role": "CRP"},
+    {"name": "Dumadiya Vipul", "role": "CRP"},
+    {"name": "Jograjiya Chatur", "role": "CRP"},
+    {"name": "Luni Hiruben", "role": "CRP"},
+    {"name": "Kalotara Hirabhai", "role": "CRP"},
+    {"name": "Malkiya Hitesh", "role": "CRP"},
+    {"name": "Zampadiya Vijay", "role": "CRP"},
+    {"name": "Rangapara Arvindbhai", "role": "CRP"},
+    {"name": "Mkavana Sanjay", "role": "CRP"},
+    {"name": "Degama Vishal", "role": "CRP"},
+    {"name": "Mer Parth", "role": "CRP"},
+    {"name": "Shiyaliya Vijay", "role": "CRP"},
+    {"name": "Meniya Mahesh", "role": "CRP"},
+    {"name": "Dholakiya Manji", "role": "CRP"},
+    {"name": "Kahmani Navghan", "role": "CRP"},
+    {"name": "Dhoriya Rahul", "role": "CRP"},
+    {"name": "Dabhi Vasharam", "role": "CRP"},
+    {"name": "Dharajiya Mukesh", "role": "CRP"},
+    {"name": "Dharajiya Mehul", "role": "CRP"},
+    {"name": "Dabhi Ashok", "role": "CRP"},
+    {"name": "Bhusadiya Ajay", "role": "CRP"},
+    {"name": "Goriya Chhagan", "role": "CRP"},
+    {"name": "Dhoriya Kartik", "role": "CRP"},
+    {"name": "Rathod Dinesh", "role": "CRP"},
+    {"name": "Sitapara Sanjay", "role": "CRP"},
+    {"name": "Vaghela Shailesh", "role": "CRP"},
+    {"name": "Hadani Vishal", "role": "CRP"},
+    {"name": "Rajapara Bhavesh", "role": "CRP"},
+    {"name": "Chavda Jayesh", "role": "CRP"},
+    {"name": "Lalabhai Sambad", "role": "CRP"},
+    {"name": "Paramar Abhijit", "role": "CRP"},
+    {"name": "Makvana Vijay", "role": "CRP"},
+    {"name": "Sambad Sanjay", "role": "CRP"},
+    {"name": "Malakiya Akshay", "role": "CRP"},
+    {"name": "Sakariya Gopal", "role": "CRP"},
+    {"name": "Jograjiya Haresh", "role": "CRP"},
+    {"name": "Kansagara Lalji", "role": "CRP"},
+    {"name": "Rathod Hirabhai", "role": "CRP"},
+    {"name": "Rathod Vishal", "role": "CRP"},
+    {"name": "Sambad Jethabhai", "role": "CRP"},
+    {"name": "Borasaniya Jayraj", "role": "CRP"},
+    {"name": "Aal Rohit", "role": "CRP"},
+    {"name": "Zapadiya Hareshbhai", "role": "CRP"},
+    {"name": "Khatana Gelabhai", "role": "CRP"},
+    {"name": "Rabari Ramabhai", "role": "CRP"},
+    {"name": "Meghwal Jyotshanaben", "role": "CRP"},
+    {"name": "Vidiya Aratiben", "role": "CRP"},
+    {"name": "Chavan Jaypal", "role": "CRP"},
+    {"name": "Chavda Valabhai", "role": "CRP"},
+    {"name": "Makwana Ramesh", "role": "CRP"},
+    {"name": "Parmar Rajesh", "role": "CRP"},
+    # FA Names
+    {"name": "Rajan Patel", "role": "FA"},
+    {"name": "Pedhadiya Dharmesh", "role": "FA"},
+    {"name": "Maradiya Bhavna", "role": "FA"},
+    {"name": "Khokhar Kishan", "role": "FA"},
+    {"name": "Olakiya Kinjal", "role": "FA"},
+    {"name": "Dabhi Divya", "role": "FA"},
+    {"name": "Solanki Dharmedrabhai", "role": "FA"},
+    {"name": "Dabhi Hemangi", "role": "FA"},
+    {"name": "Simral Kilnake", "role": "FA"},
+    {"name": "Shrikant Bajare", "role": "FA"},
 ]
 
 # Create a mapping from name to role for easy lookup
@@ -89,7 +157,7 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, lat=N
         st.warning(f"Attendance already marked today for {person}.")
         return False
 
-    # Get current time in India timezone
+    # Get current time in India timezone (Automatic Timestamp)
     india_timezone = pytz.timezone('Asia/Kolkata')
     current_time_in_india = datetime.now(india_timezone)
     timestamp_str = current_time_in_india.strftime('%Y-%m-%d %H:%M:%S %Z%z')
@@ -105,8 +173,8 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, lat=N
                 person_type,
                 status,
                 photo_uploaded_indicator, # 'Yes' or 'No' based on photo input
-                lat,
-                lon
+                lat, # This will be None for automatic geolocation in this app
+                lon  # This will be None for automatic geolocation in this app
             ))
             conn.commit()
             st.success(f"Attendance marked for {person} as {status}.")
@@ -180,28 +248,18 @@ if selected_person:
 else:
     person_type = "Unknown"
 
-# Geolocation Input
-# NOTE: For a real web app with automatic geolocation, you would need
-# to use JavaScript on the frontend to capture GPS coordinates and send
-# them to the Streamlit backend (e.g., via Streamlit Components or a custom solution).
-# For this local setup, we use a manual input.
-geolocation_input = st.text_input(
-    "Enter your current geolocation (e.g., Latitude, Longitude or Address):",
-    placeholder="e.g., 18.5204, 73.8567 (Pune, India)"
+# Geolocation Explanation (Removed manual input for 'autoset' requirement)
+st.markdown("---")
+st.subheader("Timestamp and Geolocation")
+st.info("The **Timestamp** will be automatically recorded when you submit your attendance.")
+st.warning(
+    "**Automatic Geolocation** (capturing your exact Latitude and Longitude) "
+    "is a client-side feature that typically requires JavaScript in a web browser "
+    "to access device GPS. For this Streamlit app running in Python, "
+    "geolocation will currently be recorded as 'None' unless a custom Streamlit component "
+    "or a more complex web application setup is used."
 )
-latitude = None
-longitude = None
-if geolocation_input:
-    try:
-        # Attempt to parse as Lat, Lon
-        parts = geolocation_input.replace(" ", "").split(',')
-        if len(parts) == 2:
-            latitude = float(parts[0])
-            longitude = float(parts[1])
-    except ValueError:
-        st.warning("Please enter geolocation as 'Latitude, Longitude' or descriptive text.")
-        latitude = None
-        longitude = None
+st.markdown("---")
 
 
 # Photo Upload
@@ -232,9 +290,10 @@ attendance_status = st.radio(
 )
 
 # Submit Button
+# lat and lon are passed as None, as they are not captured automatically in this setup
 if st.button("Submit Attendance"):
     if selected_person:
-        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, latitude, longitude)
+        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, None, None)
     else:
         st.error("Please select your name to mark attendance.")
 
@@ -296,6 +355,7 @@ if not df_attendance.empty:
             edit_type = st.selectbox("Type:", options=["FA", "CRP", "Unknown"], index=["FA", "CRP", "Unknown"].index(record_to_edit['Type']) if record_to_edit['Type'] in ["FA", "CRP", "Unknown"] else 2, key=f"edit_type_{selected_record_id}")
             edit_status = st.selectbox("Status:", options=["Present", "On Leave", "Absent"], index=["Present", "On Leave", "Absent"].index(record_to_edit['Status']) if record_to_edit['Status'] in ["Present", "On Leave", "Absent"] else 0, key=f"edit_status_{selected_record_id}")
             edit_photo_uploaded = st.selectbox("Photo Uploaded:", options=["Yes", "No", "Photo Uploaded", "No Photo"], index=["Yes", "No", "Photo Uploaded", "No Photo"].index(record_to_edit['Photo_Uploaded']) if record_to_edit['Photo_Uploaded'] in ["Yes", "No", "Photo Uploaded", "No Photo"] else 1, key=f"edit_photo_{selected_record_id}")
+            # Geolocation fields in edit section are still present for manual correction if needed
             edit_lat = st.number_input("Latitude:", value=float(record_to_edit['Latitude']) if pd.notna(record_to_edit['Latitude']) else 0.0, format="%.6f", key=f"edit_lat_{selected_record_id}")
             edit_lon = st.number_input("Longitude:", value=float(record_to_edit['Longitude']) if pd.notna(record_to_edit['Longitude']) else 0.0, format="%.6f", key=f"edit_lon_{selected_record_id}")
 
