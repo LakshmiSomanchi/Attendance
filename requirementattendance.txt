@@ -1,4 +1,7 @@
-streamlit
-pandas
-openpyxl
-airtable-python-wrapper
+streamlit==1.33.0
+pandas==2.2.2
+sqlite3
+openpyxl==3.1.2
+pytz==2024.1
+plotly==5.22.0
+kaleido==0.2.1
