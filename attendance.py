@@ -6,6 +6,7 @@ from io import BytesIO
 import pytz # For accurate timezones
 import os # For file system operations
 import uuid # For generating unique filenames
+import zipfile # For creating zip archives
 
 # --- Database Configuration ---
 DB_PATH = "attendance.db"
@@ -265,6 +266,18 @@ def convert_df_to_csv_bytes(df):
         df_copy[col] = df_copy[col].astype(str)
     return df_copy.to_csv(index=False).encode("utf-8")
 
+@st.cache_data
+def create_zip_of_photos(photo_paths):
+    """Creates a ZIP file in memory containing the specified photo files."""
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED, False) as zip_file:
+        for photo_path in photo_paths:
+            if os.path.exists(photo_path):
+                # Add file to zip, using its base name to avoid full path in zip
+                zip_file.write(photo_path, os.path.basename(photo_path))
+    zip_buffer.seek(0) # Rewind the buffer to the beginning
+    return zip_buffer.getvalue()
+
 # --- Run DB init on load ---
 st.set_page_config(layout="centered", page_title="Field Worker Attendance")
 
@@ -372,7 +385,6 @@ if not df_attendance.empty:
 
     st.dataframe(filtered_df.sort_values(by="Timestamp", ascending=False), use_container_width=True)
 
-    # Changed from Excel to CSV download
     csv_data = convert_df_to_csv_bytes(filtered_df)
     st.download_button(
         label="Download Attendance as CSV", # Updated label
@@ -386,10 +398,23 @@ if not df_attendance.empty:
     # --- Photo Download Section ---
     st.header("Download Individual Photos")
     
-    # Filter records that have a photo uploaded
+    # Filter records that have a photo uploaded AND a valid Photo_Path
     records_with_photos = filtered_df[filtered_df['Photo_Path'].notna() & (filtered_df['Photo_Path'] != '')]
 
     if not records_with_photos.empty:
+        # Option to download all filtered photos as a ZIP
+        photo_paths_to_zip = records_with_photos['Photo_Path'].tolist()
+        if photo_paths_to_zip:
+            zip_file_bytes = create_zip_of_photos(photo_paths_to_zip)
+            st.download_button(
+                label="Download All Filtered Photos as ZIP",
+                data=zip_file_bytes,
+                file_name="filtered_photos.zip",
+                mime="application/zip"
+            )
+            st.markdown("---") # Separator for clarity
+
+        # Section for individual photo download
         photo_record_ids = records_with_photos['id'].tolist()
         selected_photo_record_id = st.selectbox(
             "Select a record ID to download its photo:",
