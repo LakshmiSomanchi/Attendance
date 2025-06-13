@@ -6,10 +6,8 @@ from datetime import datetime
 from airtable import Airtable
 from io import BytesIO
 
-# --- Config ---
-TABLE_NAME = "CRP_FA_Attendance_Table"  # Avoid using slashes
+TABLE_NAME = "CRP_FA_Attendance_Table" 
 
-# --- Cached Airtable Connection ---
 @st.cache_resource
 def get_airtable_client():
     try:
