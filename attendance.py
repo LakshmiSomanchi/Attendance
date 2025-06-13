@@ -229,7 +229,13 @@ def delete_record(record_id):
 
 @st.cache_data
 def convert_df_to_csv_bytes(df):
-    return df.to_csv(index=False).encode("utf-8")
+    """Converts a Pandas DataFrame to a CSV byte stream for download."""
+    # Ensure all columns are strings before converting to CSV to prevent issues with mixed types
+    # This is a robust way to handle potential future type issues in columns that might be numeric or other types
+    df_copy = df.copy() # Work on a copy to avoid modifying original df for display
+    for col in df_copy.columns:
+        df_copy[col] = df_copy[col].astype(str)
+    return df_copy.to_csv(index=False).encode("utf-8")
 
 # --- Run DB init on load ---
 st.set_page_config(layout="centered", page_title="Field Worker Attendance")
@@ -338,16 +344,16 @@ if not df_attendance.empty:
 
     st.dataframe(filtered_df.sort_values(by="Timestamp", ascending=False), use_container_width=True)
 
+    # Changed from Excel to CSV download
     csv_data = convert_df_to_csv_bytes(filtered_df)
-st.download_button(
-    label="Download Attendance as CSV",
-    data=csv_data,
-    file_name="attendance_records.csv",
-    mime="text/csv"
-)
+    st.download_button(
+        label="Download Attendance as CSV", # Updated label
+        data=csv_data,
+        file_name="attendance_records.csv", # Updated file name
+        mime="text/csv" # Updated mime type
+    )
 
-
-    st.markdown("-")
+    st.markdown("---")
 
     # --- Photo Download Section ---
     st.header("Download Individual Photos")
