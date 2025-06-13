@@ -5,6 +5,12 @@ import pandas as pd
 from datetime import datetime
 from airtable import Airtable
 from io import BytesIO
+import subprocess
+import sys
+
+st.write("Python executable:", sys.executable)
+st.write(subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True).stdout)
+
 
 TABLE_NAME = "CRP_FA_Attendance_Table" 
 
