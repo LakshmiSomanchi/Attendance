@@ -347,7 +347,7 @@ st.download_button(
 )
 
 
-    st.markdown("---")
+    st.markdown("-")
 
     # --- Photo Download Section ---
     st.header("Download Individual Photos")
