@@ -4,12 +4,13 @@ import sqlite3
 from datetime import datetime, timedelta
 from io import BytesIO
 import pytz # For accurate timezones
-
-# Removed: import plotly.express as px # For interactive charts
+import os # For file system operations
+import uuid # For generating unique filenames
 
 # --- Database Configuration ---
 DB_PATH = "attendance.db"
 TABLE_NAME = "attendance"
+UPLOAD_FOLDER = "uploaded_photos" # Directory to save uploaded photos
 
 # --- Field Worker Data ---
 # Customizing this list with your actual FA and CRP names.
@@ -116,7 +117,7 @@ NAME_TO_ROLE_MAP = {worker["name"]: worker["role"] for worker in ALL_FIELD_WORKE
 
 # --- Database Functions ---
 def init_db():
-    """Initializes the SQLite database table if it doesn't exist."""
+    """Initializes the SQLite database table if it doesn't exist and creates photo upload directory."""
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute(f'''
             CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
@@ -126,10 +127,13 @@ def init_db():
                 Type TEXT,
                 Status TEXT,
                 Photo_Uploaded TEXT,
-                Latitude REAL,             -- Kept for potential future use or manual entry
-                Longitude REAL             -- Kept for potential future or manual entry
+                Photo_Path TEXT,            -- New column for photo file path
+                Latitude REAL,              -- Kept for potential future use or manual entry
+                Longitude REAL              -- Kept for potential future or manual entry
             )
         ''')
+    # Ensure the upload directory exists
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     st.session_state.db_initialized = True # Use session state to prevent re-initializing on every rerun
 
 
@@ -142,10 +146,11 @@ def load_attendance_data():
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
         return df
 
-def mark_attendance(person, person_type, status, photo_uploaded_indicator, lat=None, lon=None):
+def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo_file_path, lat=None, lon=None):
     """
     Marks attendance for a person, checking if they've already marked today.
-    photo_uploaded_indicator will be a string 'Yes' or 'No'.
+    photo_uploaded_indicator will be 'Yes' or 'No'.
+    photo_file_path will be the path to the saved photo file or None.
     """
     # Clear cache to ensure fresh data is loaded after marking attendance
     st.cache_data.clear()
@@ -165,16 +170,17 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, lat=N
     with sqlite3.connect(DB_PATH) as conn:
         try:
             conn.execute(f'''
-                INSERT INTO {TABLE_NAME} (Timestamp, Person, Type, Status, Photo_Uploaded, Latitude, Longitude)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO {TABLE_NAME} (Timestamp, Person, Type, Status, Photo_Uploaded, Photo_Path, Latitude, Longitude)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 timestamp_str, # Use the timezone-aware timestamp
                 person,
                 person_type,
                 status,
                 photo_uploaded_indicator, # 'Yes' or 'No' based on photo input
-                lat, # Still None by default from app input
-                lon  # Still None by default from app input
+                photo_file_path,          # Store the path to the saved photo
+                lat,
+                lon
             ))
             conn.commit()
             st.success(f"Attendance marked for {person} as {status}.")
@@ -199,9 +205,19 @@ def update_record(record_id, fields: dict):
         return False
 
 def delete_record(record_id):
-    """Deletes an attendance record by ID."""
+    """Deletes an attendance record by ID and removes associated photo file if it exists."""
     try:
         with sqlite3.connect(DB_PATH) as conn:
+            # First, retrieve the photo path to delete the file
+            cursor = conn.execute(f"SELECT Photo_Path FROM {TABLE_NAME} WHERE id = ?", (record_id,))
+            photo_path_to_delete = cursor.fetchone()
+            if photo_path_to_delete and photo_path_to_delete[0]:
+                full_path = photo_path_to_delete[0]
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    st.info(f"Removed photo file: {full_path}")
+            
+            # Then, delete the record from the database
             conn.execute(f"DELETE FROM {TABLE_NAME} WHERE id = ?", (record_id,))
             conn.commit()
             st.success(f"Record {record_id} deleted successfully.")
@@ -218,16 +234,6 @@ def convert_df_to_excel_bytes(df):
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False)
     return output.getvalue()
-
-# Removed: def get_image_download_link(fig, filename, text):
-# Removed:     """Generates a download link for a Plotly figure as a PNG image."""
-# Removed:     img_bytes = fig.to_image(format="png", engine="kaleido") # Requires kaleido to be installed
-# Removed:     return st.download_button(
-# Removed:         label=text,
-# Removed:         data=img_bytes,
-# Removed:         file_name=filename,
-# Removed:         mime="image/png"
-# Removed:     )
 
 # --- Run DB init on load ---
 st.set_page_config(layout="centered", page_title="Field Worker Attendance")
@@ -263,10 +269,6 @@ st.info("The **Timestamp** will be automatically recorded when you submit your a
 
 
 # Photo Upload
-# NOTE: The actual photo file is NOT stored in the SQLite database due to size limitations.
-# For persistent storage of photos, you would typically save them to a designated
-# folder on your server or to cloud storage (e.g., AWS S3, Google Cloud Storage)
-# and store the file path/URL in the database.
 uploaded_photo = st.file_uploader(
     "Upload a photo (optional for verification):",
     type=["jpg", "jpeg", "png"],
@@ -274,12 +276,25 @@ uploaded_photo = st.file_uploader(
 )
 
 photo_uploaded_indicator = "No Photo"
+photo_file_path = None # Initialize photo_file_path
+
 if uploaded_photo is not None:
-    # For now, just indicate that a photo was uploaded.
-    # In a real app, you'd save the uploaded_photo.read() bytes to a file.
-    photo_uploaded_indicator = "Photo Uploaded"
-    st.success("Photo uploaded successfully!")
-    st.image(uploaded_photo, caption="Uploaded Photo", width=150)
+    # Generate a unique filename
+    unique_filename = f"{uuid.uuid4()}_{uploaded_photo.name}"
+    # Define the full path where the file will be saved
+    photo_file_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+
+    # Save the uploaded file to the designated folder
+    try:
+        with open(photo_file_path, "wb") as f:
+            f.write(uploaded_photo.getbuffer())
+        photo_uploaded_indicator = "Photo Uploaded"
+        st.success("Photo uploaded successfully!")
+        st.image(uploaded_photo, caption="Uploaded Photo", width=150)
+    except Exception as e:
+        st.error(f"Error saving photo: {e}")
+        photo_file_path = None # Reset path if saving failed
+        photo_uploaded_indicator = "Photo Upload Failed"
 
 
 # Attendance Status Radio Buttons
@@ -293,7 +308,7 @@ attendance_status = st.radio(
 # lat and lon are passed as None, as they are not captured automatically in this setup
 if st.button("Submit Attendance"):
     if selected_person:
-        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, None, None)
+        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, photo_file_path, None, None)
     else:
         st.error("Please select your name to mark attendance.")
 
@@ -338,9 +353,42 @@ if not df_attendance.empty:
 
     st.markdown("---")
 
-    # Removed: --- Attendance Visualizations Section ---
-    # Removed: st.header("Attendance Visualizations")
-    # Removed: ... (all chart-related code)
+    # --- Photo Download Section ---
+    st.header("Download Individual Photos")
+    
+    # Filter records that have a photo uploaded
+    records_with_photos = filtered_df[filtered_df['Photo_Path'].notna() & (filtered_df['Photo_Path'] != '')]
+
+    if not records_with_photos.empty:
+        photo_record_ids = records_with_photos['id'].tolist()
+        selected_photo_record_id = st.selectbox(
+            "Select a record ID to download its photo:",
+            options=photo_record_ids,
+            key="photo_download_selector"
+        )
+
+        if selected_photo_record_id:
+            selected_photo_record = records_with_photos[records_with_photos['id'] == selected_photo_record_id].iloc[0]
+            photo_path = selected_photo_record['Photo_Path']
+            person_name = selected_photo_record['Person']
+
+            if os.path.exists(photo_path):
+                st.write(f"Photo for **{person_name}** (Record ID: {selected_photo_record_id}):")
+                st.image(photo_path, caption=f"{person_name}'s photo from {selected_photo_record['Timestamp'].strftime('%Y-%m-%d')}", width=200)
+                
+                with open(photo_path, "rb") as file:
+                    st.download_button(
+                        label="Download Photo",
+                        data=file.read(),
+                        file_name=os.path.basename(photo_path),
+                        mime="image/png" if photo_path.lower().endswith('.png') else "image/jpeg"
+                    )
+            else:
+                st.warning(f"Photo file not found for Record ID {selected_photo_record_id} at {photo_path}. It might have been manually deleted from the server.")
+    else:
+        st.info("No records with uploaded photos found in the filtered data.")
+
+    st.markdown("---")
 
 
     # --- Manage Records Section (Update/Delete) ---
@@ -349,25 +397,28 @@ if not df_attendance.empty:
 
     record_ids = df_attendance['id'].tolist()
     if record_ids:
-        selected_record_id = st.selectbox("Select Record ID:", options=record_ids)
+        selected_record_id_manage = st.selectbox("Select Record ID:", options=record_ids, key="manage_record_selector")
 
-        if selected_record_id:
-            record_to_edit = df_attendance[df_attendance['id'] == selected_record_id].iloc[0]
+        if selected_record_id_manage:
+            record_to_edit = df_attendance[df_attendance['id'] == selected_record_id_manage].iloc[0]
             st.write(f"**Editing Record ID:** {record_to_edit['id']}")
 
             # Display current values for editing
-            edit_person = st.text_input("Person:", value=record_to_edit['Person'], key=f"edit_person_{selected_record_id}")
-            edit_type = st.selectbox("Type:", options=["FA", "CRP", "Unknown"], index=["FA", "CRP", "Unknown"].index(record_to_edit['Type']) if record_to_edit['Type'] in ["FA", "CRP", "Unknown"] else 2, key=f"edit_type_{selected_record_id}")
-            edit_status = st.selectbox("Status:", options=["Present", "On Leave", "Absent"], index=["Present", "On Leave", "Absent"].index(record_to_edit['Status']) if record_to_edit['Status'] in ["Present", "On Leave", "Absent"] else 0, key=f"edit_status_{selected_record_id}")
-            edit_photo_uploaded = st.selectbox("Photo Uploaded:", options=["Yes", "No", "Photo Uploaded", "No Photo"], index=["Yes", "No", "Photo Uploaded", "No Photo"].index(record_to_edit['Photo_Uploaded']) if record_to_edit['Photo_Uploaded'] in ["Yes", "No", "Photo Uploaded", "No Photo"] else 1, key=f"edit_photo_{selected_record_id}")
+            edit_person = st.text_input("Person:", value=record_to_edit['Person'], key=f"edit_person_{selected_record_id_manage}")
+            edit_type = st.selectbox("Type:", options=["FA", "CRP", "Unknown"], index=["FA", "CRP", "Unknown"].index(record_to_edit['Type']) if record_to_edit['Type'] in ["FA", "CRP", "Unknown"] else 2, key=f"edit_type_{selected_record_id_manage}")
+            edit_status = st.selectbox("Status:", options=["Present", "On Leave", "Absent"], index=["Present", "On Leave", "Absent"].index(record_to_edit['Status']) if record_to_edit['Status'] in ["Present", "On Leave", "Absent"] else 0, key=f"edit_status_{selected_record_id_manage}")
+            edit_photo_uploaded = st.selectbox("Photo Uploaded Status:", options=["Yes", "No", "Photo Uploaded", "No Photo"], index=["Yes", "No", "Photo Uploaded", "No Photo"].index(record_to_edit['Photo_Uploaded']) if record_to_edit['Photo_Uploaded'] in ["Yes", "No", "Photo Uploaded", "No Photo"] else 1, key=f"edit_photo_status_{selected_record_id_manage}")
             
+            # Display Photo_Path for reference, but not directly editable via file upload here
+            st.text_input("Photo Path (for reference):", value=record_to_edit['Photo_Path'] if pd.notna(record_to_edit['Photo_Path']) else '', disabled=True, key=f"edit_photo_path_{selected_record_id_manage}")
+
             # Lat/Lon fields are still present for manual correction if needed, but not automatically filled
-            edit_lat = st.number_input("Latitude:", value=float(record_to_edit['Latitude']) if pd.notna(record_to_edit['Latitude']) else 0.0, format="%.6f", key=f"edit_lat_{selected_record_id}")
-            edit_lon = st.number_input("Longitude:", value=float(record_to_edit['Longitude']) if pd.notna(record_to_edit['Longitude']) else 0.0, format="%.6f", key=f"edit_lon_{selected_record_id}")
+            edit_lat = st.number_input("Latitude:", value=float(record_to_edit['Latitude']) if pd.notna(record_to_edit['Latitude']) else 0.0, format="%.6f", key=f"edit_lat_{selected_record_id_manage}")
+            edit_lon = st.number_input("Longitude:", value=float(record_to_edit['Longitude']) if pd.notna(record_to_edit['Longitude']) else 0.0, format="%.6f", key=f"edit_lon_{selected_record_id_manage}")
 
             col_u1, col_u2 = st.columns(2)
             with col_u1:
-                if st.button(f"Update Record {selected_record_id}"):
+                if st.button(f"Update Record {selected_record_id_manage}"):
                     fields_to_update = {
                         "Person": edit_person,
                         "Type": edit_type,
@@ -375,11 +426,12 @@ if not df_attendance.empty:
                         "Photo_Uploaded": edit_photo_uploaded,
                         "Latitude": edit_lat,
                         "Longitude": edit_lon
+                        # Photo_Path is not updated via this form as it's handled on upload
                     }
-                    update_record(selected_record_id, fields_to_update)
+                    update_record(selected_record_id_manage, fields_to_update)
             with col_u2:
-                if st.button(f"Delete Record {selected_record_id}"):
-                    delete_record(selected_record_id)
+                if st.button(f"Delete Record {selected_record_id_manage}"):
+                    delete_record(selected_record_id_manage)
     else:
         st.info("No records to manage yet.")
 
