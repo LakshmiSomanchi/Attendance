@@ -117,9 +117,16 @@ NAME_TO_ROLE_MAP = {worker["name"]: worker["role"] for worker in ALL_FIELD_WORKE
 
 # --- Database Functions ---
 def init_db():
-    """Initializes the SQLite database table if it doesn't exist and creates photo upload directory."""
+    """
+    Initializes the SQLite database table if it doesn't exist.
+    Also, adds missing columns (Photo_Path, Latitude, Longitude) if they are not present,
+    and creates the photo upload directory.
+    """
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute(f'''
+        cursor = conn.cursor()
+
+        # Create table if it doesn't exist with all intended columns
+        cursor.execute(f'''
             CREATE TABLE IF NOT EXISTS {TABLE_NAME} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Timestamp TEXT,
@@ -127,11 +134,32 @@ def init_db():
                 Type TEXT,
                 Status TEXT,
                 Photo_Uploaded TEXT,
-                Photo_Path TEXT,            -- New column for photo file path
-                Latitude REAL,              -- Kept for potential future use or manual entry
-                Longitude REAL              -- Kept for potential future or manual entry
+                Photo_Path TEXT,
+                Latitude REAL,
+                Longitude REAL
             )
         ''')
+        conn.commit()
+
+        # Check for and add missing columns for robustness (handles older DB schemas)
+        # This prevents KeyError if the DB was created by an older version of init_db
+        existing_columns = [col[1] for col in cursor.execute(f"PRAGMA table_info({TABLE_NAME})").fetchall()]
+
+        if 'Photo_Path' not in existing_columns:
+            cursor.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN Photo_Path TEXT")
+            conn.commit()
+            st.info("Added 'Photo_Path' column to the database.")
+
+        if 'Latitude' not in existing_columns:
+            cursor.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN Latitude REAL")
+            conn.commit()
+            st.info("Added 'Latitude' column to the database.")
+
+        if 'Longitude' not in existing_columns:
+            cursor.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN Longitude REAL")
+            conn.commit()
+            st.info("Added 'Longitude' column to the database.")
+
     # Ensure the upload directory exists
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     st.session_state.db_initialized = True # Use session state to prevent re-initializing on every rerun
