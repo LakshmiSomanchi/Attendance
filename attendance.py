@@ -126,7 +126,7 @@ def init_db():
                 Type TEXT,
                 Status TEXT,
                 Photo_Uploaded TEXT,
-                Location_Description TEXT, -- New column for descriptive location
+                -- Location_Description TEXT, -- Removed column
                 Latitude REAL,             -- Kept for potential future use or manual entry
                 Longitude REAL             -- Kept for potential future use or manual entry
             )
@@ -143,7 +143,7 @@ def load_attendance_data():
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
         return df
 
-def mark_attendance(person, person_type, status, photo_uploaded_indicator, location_description, lat=None, lon=None):
+def mark_attendance(person, person_type, status, photo_uploaded_indicator, lat=None, lon=None): # Removed location_description parameter
     """
     Marks attendance for a person, checking if they've already marked today.
     photo_uploaded_indicator will be a string 'Yes' or 'No'.
@@ -165,16 +165,16 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, locat
 
     with sqlite3.connect(DB_PATH) as conn:
         try:
+            # Removed Location_Description from INSERT statement
             conn.execute(f'''
-                INSERT INTO {TABLE_NAME} (Timestamp, Person, Type, Status, Photo_Uploaded, Location_Description, Latitude, Longitude)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO {TABLE_NAME} (Timestamp, Person, Type, Status, Photo_Uploaded, Latitude, Longitude)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (
                 timestamp_str, # Use the timezone-aware timestamp
                 person,
                 person_type,
                 status,
                 photo_uploaded_indicator, # 'Yes' or 'No' based on photo input
-                location_description, # Use the new descriptive location field
                 lat, # Still None by default from app input
                 lon  # Still None by default from app input
             ))
@@ -251,15 +251,10 @@ else:
     person_type = "Unknown"
 
 st.markdown("---")
-st.subheader("Timestamp and Location Details")
+st.subheader("Timestamp Details")
 st.info("The **Timestamp** will be automatically recorded when you submit your attendance.")
 
-# Manual input for a descriptive location
-location_description = st.text_input(
-    "Enter your current location (e.g., Village Name, Farm ID, Specific Area):",
-    placeholder="e.g., Marathwada Village, Plot A, Near Blue Barn"
-)
-st.markdown("---")
+# Removed manual input for a descriptive location
 
 
 # Photo Upload
@@ -293,7 +288,7 @@ attendance_status = st.radio(
 # lat and lon are passed as None, as they are not captured automatically in this setup
 if st.button("Submit Attendance"):
     if selected_person:
-        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, location_description, None, None)
+        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, None, None) # Removed location_description parameter
     else:
         st.error("Please select your name to mark attendance.")
 
@@ -356,9 +351,7 @@ if not df_attendance.empty:
             edit_status = st.selectbox("Status:", options=["Present", "On Leave", "Absent"], index=["Present", "On Leave", "Absent"].index(record_to_edit['Status']) if record_to_edit['Status'] in ["Present", "On Leave", "Absent"] else 0, key=f"edit_status_{selected_record_id}")
             edit_photo_uploaded = st.selectbox("Photo Uploaded:", options=["Yes", "No", "Photo Uploaded", "No Photo"], index=["Yes", "No", "Photo Uploaded", "No Photo"].index(record_to_edit['Photo_Uploaded']) if record_to_edit['Photo_Uploaded'] in ["Yes", "No", "Photo Uploaded", "No Photo"] else 1, key=f"edit_photo_{selected_record_id}")
             
-            # New field for Location_Description in edit section
-            edit_location_description = st.text_input("Location Description:", value=record_to_edit['Location_Description'] if 'Location_Description' in record_to_edit else '', key=f"edit_loc_desc_{selected_record_id}")
-
+            # Removed Location_Description from edit section
             # Lat/Lon fields are still present for manual correction if needed, but not automatically filled
             edit_lat = st.number_input("Latitude:", value=float(record_to_edit['Latitude']) if pd.notna(record_to_edit['Latitude']) else 0.0, format="%.6f", key=f"edit_lat_{selected_record_id}")
             edit_lon = st.number_input("Longitude:", value=float(record_to_edit['Longitude']) if pd.notna(record_to_edit['Longitude']) else 0.0, format="%.6f", key=f"edit_lon_{selected_record_id}")
@@ -371,7 +364,7 @@ if not df_attendance.empty:
                         "Type": edit_type,
                         "Status": edit_status,
                         "Photo_Uploaded": edit_photo_uploaded,
-                        "Location_Description": edit_location_description, # Include new field
+                        # Removed Location_Description from fields_to_update
                         "Latitude": edit_lat,
                         "Longitude": edit_lon
                     }
