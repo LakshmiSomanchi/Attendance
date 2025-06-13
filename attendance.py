@@ -228,12 +228,8 @@ def delete_record(record_id):
         return False
 
 @st.cache_data
-def convert_df_to_excel_bytes(df):
-    """Converts a Pandas DataFrame to an Excel byte stream for download."""
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False)
-    return output.getvalue()
+def convert_df_to_csv_bytes(df):
+    return df.to_csv(index=False).encode("utf-8")
 
 # --- Run DB init on load ---
 st.set_page_config(layout="centered", page_title="Field Worker Attendance")
@@ -342,14 +338,14 @@ if not df_attendance.empty:
 
     st.dataframe(filtered_df.sort_values(by="Timestamp", ascending=False), use_container_width=True)
 
-    # Download button for Excel
-    excel_data = convert_df_to_excel_bytes(filtered_df)
-    st.download_button(
-        label="Download Attendance as Excel",
-        data=excel_data,
-        file_name="attendance_records.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
+    csv_data = convert_df_to_csv_bytes(filtered_df)
+st.download_button(
+    label="Download Attendance as CSV",
+    data=csv_data,
+    file_name="attendance_records.csv",
+    mime="text/csv"
+)
+
 
     st.markdown("---")
 
