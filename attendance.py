@@ -5,15 +5,11 @@ import pandas as pd
 from datetime import datetime
 from airtable import Airtable
 from io import BytesIO
-import subprocess
-import sys
 
-st.write("Python executable:", sys.executable)
-st.write(subprocess.run([sys.executable, "-m", "pip", "list"], capture_output=True, text=True).stdout)
+# --- Config ---
+TABLE_NAME = "CRP/FA Attendance Table"  # Use exact Airtable table name
 
-
-TABLE_NAME = "CRP/FA Attendance Table" 
-
+# --- Cached Airtable Connection ---
 @st.cache_resource
 def get_airtable_client():
     try:
@@ -38,7 +34,7 @@ def load_attendance_data_from_airtable():
             data.append(fields)
 
         df = pd.DataFrame(data)
-        expected = ['Timestamp', 'Person', 'Type', 'Status', 'Photo_Uploaded', 'Latitude', 'Longitude', 'record_id']
+        expected = ['Timestamp', 'Person', 'Type', 'Status', 'Photo Uploaded', 'Latitude', 'Longitude', 'record_id']
         for col in expected:
             if col not in df:
                 df[col] = None
@@ -48,7 +44,7 @@ def load_attendance_data_from_airtable():
 
     except Exception as e:
         st.error(f"Failed to load Airtable data: {e}")
-        return pd.DataFrame(columns=['Timestamp', 'Person', 'Type', 'Status', 'Photo_Uploaded', 'Latitude', 'Longitude', 'record_id'])
+        return pd.DataFrame(columns=['Timestamp', 'Person', 'Type', 'Status', 'Photo Uploaded', 'Latitude', 'Longitude', 'record_id'])
 
 def mark_attendance(person, person_type, status, photo="No Photo", lat=None, lon=None):
     st.cache_data.clear()
@@ -65,7 +61,7 @@ def mark_attendance(person, person_type, status, photo="No Photo", lat=None, lon
             'Person': person,
             'Type': person_type,
             'Status': status,
-            'Photo_Uploaded': photo,
+            'Photo Uploaded': photo,
             'Latitude': lat,
             'Longitude': lon
         })
