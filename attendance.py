@@ -13,9 +13,6 @@ DB_PATH = "attendance.db"
 TABLE_NAME = "attendance"
 UPLOAD_FOLDER = "uploaded_photos" # Directory to save uploaded photos
 
-# --- Field Worker Data ---
-# Customizing this list with your actual FA and CRP names.
-# This list will be used to populate the dropdown for selecting a person.
 ALL_FIELD_WORKERS = [
     # CRP Names
     {"name": "Dhananjay Dewar", "role": "CRP"},
