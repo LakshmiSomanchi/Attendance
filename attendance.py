@@ -188,7 +188,7 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo
 
     # Check if attendance is already marked for today for this person
     if not df[(df['Timestamp'].dt.strftime('%Y-%m-%d') == today_str) & (df['Person'] == person)].empty:
-        st.warning(f"Attendance already marked today for {person}.")
+        st.warning(f"Attendance already marked today for **{person}**.")
         return False
 
     # Get current time in India timezone (Automatic Timestamp)
@@ -206,13 +206,13 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo
                 person,
                 person_type,
                 status,
-                photo_uploaded_indicator, # 'Yes' or 'No' based on photo input
+                photo_uploaded_indicator, # 'Photo Uploaded' or 'No Photo'
                 photo_file_path,          # Store the path to the saved photo
                 lat,
                 lon
             ))
             conn.commit()
-            st.success(f"Attendance marked for {person} as {status}.")
+            st.success(f"Attendance marked for **{person}** as **{status}**.")
             st.cache_data.clear() # Clear cache again after successful insert
             return True
         except Exception as e:
@@ -226,11 +226,11 @@ def update_record(record_id, fields: dict):
         with sqlite3.connect(DB_PATH) as conn:
             conn.execute(f"UPDATE {TABLE_NAME} SET {set_clause} WHERE id = ?", list(fields.values()) + [record_id])
             conn.commit()
-            st.success(f"Record {record_id} updated successfully.")
+            st.success(f"Record **{record_id}** updated successfully.")
             st.cache_data.clear() # Clear cache after update
             return True
     except Exception as e:
-        st.error(f"Error updating record {record_id}: {e}")
+        st.error(f"Error updating record **{record_id}**: {e}")
         return False
 
 def delete_record(record_id):
@@ -244,16 +244,16 @@ def delete_record(record_id):
                 full_path = photo_path_to_delete[0]
                 if os.path.exists(full_path):
                     os.remove(full_path)
-                    st.info(f"Removed photo file: {full_path}")
+                    st.info(f"Removed photo file: **{os.path.basename(full_path)}**")
             
             # Then, delete the record from the database
             conn.execute(f"DELETE FROM {TABLE_NAME} WHERE id = ?", (record_id,))
             conn.commit()
-            st.success(f"Record {record_id} deleted successfully.")
+            st.success(f"Record **{record_id}** deleted successfully.")
             st.cache_data.clear() # Clear cache after delete
             return True
     except Exception as e:
-        st.error(f"Error deleting record {record_id}: {e}")
+        st.error(f"Error deleting record **{record_id}**: {e}")
         return False
 
 @st.cache_data
@@ -368,7 +368,9 @@ if not df_attendance.empty:
 
     # Filter by date
     with col1:
-        start_date = st.date_input("Start Date", value=df_attendance['Timestamp'].min().date() if not df_attendance.empty else datetime.now().date())
+        # Default start date to 30 days ago if min date is much older
+        default_start_date = (datetime.now().date() - timedelta(days=30))
+        start_date = st.date_input("Start Date", value=max(df_attendance['Timestamp'].min().date(), default_start_date) if not df_attendance.empty else datetime.now().date())
     with col2:
         end_date = st.date_input("End Date", value=df_attendance['Timestamp'].max().date() if not df_attendance.empty else datetime.now().date())
     with col3:
@@ -383,63 +385,78 @@ if not df_attendance.empty:
         (df_attendance['Person'].isin(selected_persons_filter))
     ].copy() # Use .copy() to avoid SettingWithCopyWarning
 
+    st.markdown("### Filtered Attendance Data")
     st.dataframe(filtered_df.sort_values(by="Timestamp", ascending=False), use_container_width=True)
 
     csv_data = convert_df_to_csv_bytes(filtered_df)
     st.download_button(
-        label="Download Attendance as CSV", # Updated label
+        label="Download Filtered Attendance Data as CSV",
         data=csv_data,
-        file_name="attendance_records.csv", # Updated file name
-        mime="text/csv" # Updated mime type
+        file_name=f"attendance_records_{start_date}_to_{end_date}.csv",
+        mime="text/csv"
     )
 
     st.markdown("---")
 
     # --- Photo Download Section ---
-    st.header("Download Individual Photos")
+    st.header("Download Associated Photos")
     
     # Filter records that have a photo uploaded AND a valid Photo_Path
     records_with_photos = filtered_df[filtered_df['Photo_Path'].notna() & (filtered_df['Photo_Path'] != '')]
 
     if not records_with_photos.empty:
         # Option to download all filtered photos as a ZIP
-        photo_paths_to_zip = records_with_photos['Photo_Path'].tolist()
+        photo_paths_to_zip = [path for path in records_with_photos['Photo_Path'].tolist() if os.path.exists(path)]
         if photo_paths_to_zip:
             zip_file_bytes = create_zip_of_photos(photo_paths_to_zip)
             st.download_button(
                 label="Download All Filtered Photos as ZIP",
                 data=zip_file_bytes,
-                file_name="filtered_photos.zip",
-                mime="application/zip"
+                file_name=f"filtered_photos_{start_date}_to_{end_date}.zip",
+                mime="application/zip",
+                help="Downloads all photos associated with the currently filtered attendance records."
             )
             st.markdown("---") # Separator for clarity
 
         # Section for individual photo download
-        photo_record_ids = records_with_photos['id'].tolist()
-        selected_photo_record_id = st.selectbox(
-            "Select a record ID to download its photo:",
-            options=photo_record_ids,
-            key="photo_download_selector"
-        )
+        st.subheader("Download Individual Photo")
+        # Create a more descriptive label for the selectbox
+        photo_options = []
+        for index, row in records_with_photos.iterrows():
+            option_label = f"ID: {row['id']} - {row['Person']} ({row['Timestamp'].strftime('%Y-%m-%d %H:%M')})"
+            photo_options.append({"id": row['id'], "label": option_label, "path": row['Photo_Path'], "person": row['Person'], "timestamp": row['Timestamp']})
 
-        if selected_photo_record_id:
-            selected_photo_record = records_with_photos[records_with_photos['id'] == selected_photo_record_id].iloc[0]
-            photo_path = selected_photo_record['Photo_Path']
-            person_name = selected_photo_record['Person']
+        if photo_options:
+            selected_photo_option = st.selectbox(
+                "Select a record to view/download its photo:",
+                options=photo_options,
+                format_func=lambda x: x['label'],
+                key="photo_download_selector"
+            )
 
-            if os.path.exists(photo_path):
-                st.write(f"Photo for **{person_name}** (Record ID: {selected_photo_record_id}):")
-                st.image(photo_path, caption=f"{person_name}'s photo from {selected_photo_record['Timestamp'].strftime('%Y-%m-%d')}", width=200)
-                
-                with open(photo_path, "rb") as file:
-                    st.download_button(
-                        label="Download Photo",
-                        data=file.read(),
-                        file_name=os.path.basename(photo_path),
-                        mime="image/png" if photo_path.lower().endswith('.png') else "image/jpeg"
-                    )
-            else:
-                st.warning(f"Photo file not found for Record ID {selected_photo_record_id} at {photo_path}. It might have been manually deleted from the server.")
+            if selected_photo_option:
+                photo_path = selected_photo_option['path']
+                person_name = selected_photo_option['person']
+                record_timestamp = selected_photo_option['timestamp']
+                record_id = selected_photo_option['id']
+
+                if os.path.exists(photo_path):
+                    st.write(f"Photo for **{person_name}** (Record ID: {record_id}, Date: {record_timestamp.strftime('%Y-%m-%d')}):")
+                    st.image(photo_path, caption=f"{person_name}'s photo from {record_timestamp.strftime('%Y-%m-%d %H:%M')}", width=300)
+                    
+                    with open(photo_path, "rb") as file:
+                        st.download_button(
+                            label="Download Photo",
+                            data=file.read(),
+                            file_name=os.path.basename(photo_path),
+                            mime="image/png" if photo_path.lower().endswith('.png') else "image/jpeg",
+                            key=f"download_single_photo_{record_id}"
+                        )
+                else:
+                    st.warning(f"Photo file not found for Record ID {record_id} (Path: `{photo_path}`). It might have been manually deleted from the server.")
+        else:
+            st.info("No records with uploaded photos found in the filtered data that can be individually downloaded.")
+
     else:
         st.info("No records with uploaded photos found in the filtered data.")
 
@@ -448,7 +465,7 @@ if not df_attendance.empty:
 
     # --- Manage Records Section (Update/Delete) ---
     st.header("Manage Records (Admin Only)")
-    st.write("Enter the ID of the record you wish to update or delete.")
+    st.write("Use this section to update or delete existing attendance records.")
 
     record_ids = df_attendance['id'].tolist()
     if record_ids:
@@ -456,16 +473,24 @@ if not df_attendance.empty:
 
         if selected_record_id_manage:
             record_to_edit = df_attendance[df_attendance['id'] == selected_record_id_manage].iloc[0]
-            st.write(f"**Editing Record ID:** {record_to_edit['id']}")
+            st.write(f"**Currently Editing Record ID:** {record_to_edit['id']}")
 
             # Display current values for editing
             edit_person = st.text_input("Person:", value=record_to_edit['Person'], key=f"edit_person_{selected_record_id_manage}")
             edit_type = st.selectbox("Type:", options=["FA", "CRP", "Unknown"], index=["FA", "CRP", "Unknown"].index(record_to_edit['Type']) if record_to_edit['Type'] in ["FA", "CRP", "Unknown"] else 2, key=f"edit_type_{selected_record_id_manage}")
             edit_status = st.selectbox("Status:", options=["Present", "On Leave", "Absent"], index=["Present", "On Leave", "Absent"].index(record_to_edit['Status']) if record_to_edit['Status'] in ["Present", "On Leave", "Absent"] else 0, key=f"edit_status_{selected_record_id_manage}")
-            edit_photo_uploaded = st.selectbox("Photo Uploaded Status:", options=["Yes", "No", "Photo Uploaded", "No Photo"], index=["Yes", "No", "Photo Uploaded", "No Photo"].index(record_to_edit['Photo_Uploaded']) if record_to_edit['Photo_Uploaded'] in ["Yes", "No", "Photo Uploaded", "No Photo"] else 1, key=f"edit_photo_status_{selected_record_id_manage}")
+            
+            # The 'Photo_Uploaded' column indicates if a photo was provided at the time of marking.
+            # We don't change the photo itself here, just its status indicator.
+            edit_photo_uploaded = st.selectbox(
+                "Photo Uploaded Status:",
+                options=["Photo Uploaded", "No Photo", "Photo Upload Failed"],
+                index=["Photo Uploaded", "No Photo", "Photo Upload Failed"].index(record_to_edit['Photo_Uploaded']) if record_to_edit['Photo_Uploaded'] in ["Photo Uploaded", "No Photo", "Photo Upload Failed"] else 1,
+                key=f"edit_photo_status_{selected_record_id_manage}"
+            )
             
             # Display Photo_Path for reference, but not directly editable via file upload here
-            st.text_input("Photo Path (for reference):", value=record_to_edit['Photo_Path'] if pd.notna(record_to_edit['Photo_Path']) else '', disabled=True, key=f"edit_photo_path_{selected_record_id_manage}")
+            st.text_input("Photo Path (for reference):", value=record_to_edit['Photo_Path'] if pd.notna(record_to_edit['Photo_Path']) else '', disabled=True, help="This path is for reference and cannot be directly edited here. To change a photo, you'd need to delete and re-submit the attendance.", key=f"edit_photo_path_{selected_record_id_manage}")
 
             # Lat/Lon fields are still present for manual correction if needed, but not automatically filled
             edit_lat = st.number_input("Latitude:", value=float(record_to_edit['Latitude']) if pd.notna(record_to_edit['Latitude']) else 0.0, format="%.6f", key=f"edit_lat_{selected_record_id_manage}")
@@ -473,7 +498,7 @@ if not df_attendance.empty:
 
             col_u1, col_u2 = st.columns(2)
             with col_u1:
-                if st.button(f"Update Record {selected_record_id_manage}"):
+                if st.button(f"Update Record {selected_record_id_manage}", use_container_width=True):
                     fields_to_update = {
                         "Person": edit_person,
                         "Type": edit_type,
@@ -485,7 +510,7 @@ if not df_attendance.empty:
                     }
                     update_record(selected_record_id_manage, fields_to_update)
             with col_u2:
-                if st.button(f"Delete Record {selected_record_id_manage}"):
+                if st.button(f"Delete Record {selected_record_id_manage}", use_container_width=True):
                     delete_record(selected_record_id_manage)
     else:
         st.info("No records to manage yet.")
