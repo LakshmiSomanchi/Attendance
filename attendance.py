@@ -289,7 +289,7 @@ st.set_page_config(layout="centered", page_title="Field Staff Attendance App")
 if 'db_initialized' not in st.session_state:
     init_db()
 
-st.title("👨‍🌾 Field Worker Attendance Tracker")
+st.title("👨‍🌾 Field Staff Attendance App")
 st.markdown("---")
 
 # --- Attendance Marking Section ---
