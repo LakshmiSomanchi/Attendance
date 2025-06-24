@@ -14,110 +14,112 @@ TABLE_NAME = "attendance"
 UPLOAD_FOLDER = "uploaded_photos" # Directory to save uploaded photos
 
 ALL_FIELD_WORKERS = [
-    # CRP Names
-    {"name": "Dhananjay Dewar", "role": "CRP"},
-    {"name": "Mahendra Tayde", "role": "CRP"},
-    {"name": "Shrihari Sontakke", "role": "CRP"},
-    {"name": "Roshan Ingle", "role": "CRP"},
-    {"name": "Nikhil Dhenge", "role": "CRP"},
-    {"name": "Pradip Gawande", "role": "CRP"},
-    {"name": "Manoj Thakre", "role": "CRP"},
-    {"name": "Amol Bute", "role": "CRP"},
-    {"name": "Dhananjay Gawande", "role": "CRP"},
-    {"name": "Pawan Ingle", "role": "CRP"},
-    {"name": "Amardip Bunde", "role": "CRP"},
-    {"name": "Gopal Tarale", "role": "CRP"},
-    {"name": "Shital Jalmakar", "role": "CRP"},
-    {"name": "Prabhakar Wankhade", "role": "CRP"},
-    {"name": "Bhagyashri Ghawat", "role": "CRP"},
-    {"name": "Rangpara Shailesh", "role": "CRP"},
-    {"name": "Olakiya Ramesh", "role": "CRP"},
-    {"name": "Paraliya Akash", "role": "CRP"},
-    {"name": "Chauhan Ajay", "role": "CRP"},
-    {"name": "Bavliya Umesh", "role": "CRP"},
-    {"name": "Parmar Asmita", "role": "CRP"},
-    {"name": "Malkiya Amit", "role": "CRP"},
-    {"name": "Malkiya Pravin", "role": "CRP"},
-    {"name": "Rathod Rohit", "role": "CRP"},
-    {"name": "Chauhan Vijay", "role": "CRP"},
-    {"name": "Malkiya Yash", "role": "CRP"},
-    {"name": "Khetariya Ravat", "role": "CRP"},
-    {"name": "Olakiya Vaishali", "role": "CRP"},
-    {"name": "Vaghela Hasubhai", "role": "CRP"},
-    {"name": "Vaghela Bavnaben", "role": "CRP"},
-    {"name": "Sarvaiya Kinjalben", "role": "CRP"},
-    {"name": "Dumadiya Vipul", "role": "CRP"},
-    {"name": "Jograjiya Chatur", "role": "CRP"},
-    {"name": "Luni Hiruben", "role": "CRP"},
-    {"name": "Kalotara Hirabhai", "role": "CRP"},
-    {"name": "Malkiya Hitesh", "role": "CRP"},
-    {"name": "Zampadiya Vijay", "role": "CRP"},
-    {"name": "Rangapara Arvindbhai", "role": "CRP"},
-    {"name": "Mkavana Sanjay", "role": "CRP"},
-    {"name": "Degama Vishal", "role": "CRP"},
-    {"name": "Mer Parth", "role": "CRP"},
-    {"name": "Shiyaliya Vijay", "role": "CRP"},
-    {"name": "Meniya Mahesh", "role": "CRP"},
-    {"name": "Dholakiya Manji", "role": "CRP"},
-    {"name": "Kahmani Navghan", "role": "CRP"},
-    {"name": "Dhoriya Rahul", "role": "CRP"},
-    {"name": "Dabhi Vasharam", "role": "CRP"},
-    {"name": "Dharajiya Mukesh", "role": "CRP"},
-    {"name": "Dharajiya Mehul", "role": "CRP"},
-    {"name": "Dabhi Ashok", "role": "CRP"},
-    {"name": "Bhusadiya Ajay", "role": "CRP"},
-    {"name": "Goriya Chhagan", "role": "CRP"},
-    {"name": "Dhoriya Kartik", "role": "CRP"},
-    {"name": "Rathod Dinesh", "role": "CRP"},
-    {"name": "Sitapara Sanjay", "role": "CRP"},
-    {"name": "Vaghela Shailesh", "role": "CRP"},
-    {"name": "Hadani Vishal", "role": "CRP"},
-    {"name": "Rajapara Bhavesh", "role": "CRP"},
-    {"name": "Chavda Jayesh", "role": "CRP"},
-    {"name": "Lalabhai Sambad", "role": "CRP"},
-    {"name": "Paramar Abhijit", "role": "CRP"},
-    {"name": "Makvana Vijay", "role": "CRP"},
-    {"name": "Sambad Sanjay", "role": "CRP"},
-    {"name": "Malakiya Akshay", "role": "CRP"},
-    {"name": "Sakariya Gopal", "role": "CRP"},
-    {"name": "Jograjiya Haresh", "role": "CRP"},
-    {"name": "Kansagara Lalji", "role": "CRP"},
-    {"name": "Rathod Hirabhai", "role": "CRP"},
-    {"name": "Rathod Vishal", "role": "CRP"},
-    {"name": "Sambad Jethabhai", "role": "CRP"},
-    {"name": "Borasaniya Jayraj", "role": "CRP"},
-    {"name": "Aal Rohit", "role": "CRP"},
-    {"name": "Zapadiya Hareshbhai", "role": "CRP"},
-    {"name": "Khatana Gelabhai", "role": "CRP"},
-    {"name": "Rabari Ramabhai", "role": "CRP"},
-    {"name": "Meghwal Jyotshanaben", "role": "CRP"},
-    {"name": "Vidiya Aratiben", "role": "CRP"},
-    {"name": "Chavan Jaypal", "role": "CRP"},
-    {"name": "Chavda Valabhai", "role": "CRP"},
-    {"name": "Makwana Ramesh", "role": "CRP"},
-    {"name": "Parmar Rajesh", "role": "CRP"},
+    # CRP Names - Maharashtra
+    {"name": "Dhananjay Dewar", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Mahendra Tayde", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Shrihari Sontakke", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Roshan Ingle", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Nikhil Dhenge", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Pradip Gawande", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Manoj Thakre", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Amol Bute", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Dhananjay Gawande", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Pawan Ingle", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Amardip Bunde", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Gopal Tarale", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Shital Jalmakar", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Prabhakar Wankhade", "role": "CRP", "state": "Maharashtra"},
+    {"name": "Bhagyashri Ghawat", "role": "CRP", "state": "Maharashtra"},
+    # CRP Names - Gujarat
+    {"name": "Rangpara Shailesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Olakiya Ramesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Paraliya Akash", "role": "CRP", "state": "Gujarat"},
+    {"name": "Chauhan Ajay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Bavliya Umesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Parmar Asmita", "role": "CRP", "state": "Gujarat"},
+    {"name": "Malkiya Amit", "role": "CRP", "state": "Gujarat"},
+    {"name": "Malkiya Pravin", "role": "CRP", "state": "Gujarat"},
+    {"name": "Rathod Rohit", "role": "CRP", "state": "Gujarat"},
+    {"name": "Chauhan Vijay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Malkiya Yash", "role": "CRP", "state": "Gujarat"},
+    {"name": "Khetariya Ravat", "role": "CRP", "state": "Gujarat"},
+    {"name": "Olakiya Vaishali", "role": "CRP", "state": "Gujarat"},
+    {"name": "Vaghela Hasubhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Vaghela Bavnaben", "role": "CRP", "state": "Gujarat"},
+    {"name": "Sarvaiya Kinjalben", "role": "CRP", "state": "Gujarat"},
+    {"name": "Dumadiya Vipul", "role": "CRP", "state": "Gujarat"},
+    {"name": "Jograjiya Chatur", "role": "CRP", "state": "Gujarat"},
+    {"name": "Luni Hiruben", "role": "CRP", "state": "Gujarat"},
+    {"name": "Kalotara Hirabhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Malkiya Hitesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Zampadiya Vijay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Rangapara Arvindbhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Mkavana Sanjay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Degama Vishal", "role": "CRP", "state": "Gujarat"},
+    {"name": "Mer Parth", "role": "CRP", "state": "Gujarat"},
+    {"name": "Shiyaliya Vijay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Meniya Mahesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Dholakiya Manji", "role": "CRP", "state": "Gujarat"},
+    {"name": "Kahmani Navghan", "role": "CRP", "state": "Gujarat"},
+    {"name": "Dhoriya Rahul", "role": "CRP", "state": "Gujarat"},
+    {"name": "Dabhi Vasharam", "role": "CRP", "state": "Gujarat"},
+    {"name": "Dharajiya Mukesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Dharajiya Mehul", "role": "CRP", "state": "Gujarat"},
+    {"name": "Dabhi Ashok", "role": "CRP", "state": "Gujarat"},
+    {"name": "Bhusadiya Ajay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Goriya Chhagan", "role": "CRP", "state": "Gujarat"},
+    {"name": "Dhoriya Kartik", "role": "CRP", "state": "Gujarat"},
+    {"name": "Rathod Dinesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Sitapara Sanjay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Vaghela Shailesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Hadani Vishal", "role": "CRP", "state": "Gujarat"},
+    {"name": "Rajapara Bhavesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Chavda Jayesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Lalabhai Sambad", "role": "CRP", "state": "Gujarat"},
+    {"name": "Paramar Abhijit", "role": "CRP", "state": "Gujarat"},
+    {"name": "Makvana Vijay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Sambad Sanjay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Malakiya Akshay", "role": "CRP", "state": "Gujarat"},
+    {"name": "Sakariya Gopal", "role": "CRP", "state": "Gujarat"},
+    {"name": "Jograjiya Haresh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Kansagara Lalji", "role": "CRP", "state": "Gujarat"},
+    {"name": "Rathod Hirabhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Rathod Vishal", "role": "CRP", "state": "Gujarat"},
+    {"name": "Sambad Jethabhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Borasaniya Jayraj", "role": "CRP", "state": "Gujarat"},
+    {"name": "Aal Rohit", "role": "CRP", "state": "Gujarat"},
+    {"name": "Zapadiya Hareshbhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Khatana Gelabhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Rabari Ramabhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Meghwal Jyotshanaben", "role": "CRP", "state": "Gujarat"},
+    {"name": "Vidiya Aratiben", "role": "CRP", "state": "Gujarat"},
+    {"name": "Chavan Jaypal", "role": "CRP", "state": "Gujarat"},
+    {"name": "Chavda Valabhai", "role": "CRP", "state": "Gujarat"},
+    {"name": "Makwana Ramesh", "role": "CRP", "state": "Gujarat"},
+    {"name": "Parmar Rajesh", "role": "CRP", "state": "Gujarat"},
     # FA Names
-    {"name": "Rajan Patel", "role": "FA"},
-    {"name": "Pedhadiya Dharmesh", "role": "FA"},
-    {"name": "Maradiya Bhavna", "role": "FA"},
-    {"name": "Khokhar Kishan", "role": "FA"},
-    {"name": "Olakiya Kinjal", "role": "FA"},
-    {"name": "Dabhi Divya", "role": "FA"},
-    {"name": "Solanki Dharmedrabhai", "role": "FA"},
-    {"name": "Dabhi Hemangi", "role": "FA"},
-    {"name": "Simral Kilnake", "role": "FA"},
-    {"name": "Shrikant Bajare", "role": "FA"},
+    {"name": "Rajan Patel", "role": "FA", "state": "Gujarat"},
+    {"name": "Pedhadiya Dharmesh", "role": "FA", "state": "Gujarat"},
+    {"name": "Maradiya Bhavna", "role": "FA", "state": "Gujarat"},
+    {"name": "Khokhar Kishan", "role": "FA", "state": "Gujarat"},
+    {"name": "Olakiya Kinjal", "role": "FA", "state": "Gujarat"},
+    {"name": "Dabhi Divya", "role": "FA", "state": "Gujarat"},
+    {"name": "Solanki Dharmedrabhai", "role": "FA", "state": "Gujarat"},
+    {"name": "Dabhi Hemangi", "role": "FA", "state": "Gujarat"},
+    {"name": "Simral Kilnake", "role": "FA", "state": "Maharashtra"},
+    {"name": "Shrikant Bajare", "role": "FA", "state": "Maharashtra"},
 ]
 
-# Create a mapping from name to role for easy lookup
+# Create mappings from name to role and name to state for easy lookup
 NAME_TO_ROLE_MAP = {worker["name"]: worker["role"] for worker in ALL_FIELD_WORKERS}
+NAME_TO_STATE_MAP = {worker["name"]: worker["state"] for worker in ALL_FIELD_WORKERS}
 
 
 # --- Database Functions ---
 def init_db():
     """
     Initializes the SQLite database table if it doesn't exist.
-    Also, adds missing columns (Photo_Path, Latitude, Longitude) if they are not present,
+    Also, adds missing columns (Photo_Path, Latitude, Longitude, State) if they are not present,
     and creates the photo upload directory.
     """
     with sqlite3.connect(DB_PATH) as conn:
@@ -134,13 +136,13 @@ def init_db():
                 Photo_Uploaded TEXT,
                 Photo_Path TEXT,
                 Latitude REAL,
-                Longitude REAL
+                Longitude REAL,
+                State TEXT -- Added State column
             )
         ''')
         conn.commit()
 
         # Check for and add missing columns for robustness (handles older DB schemas)
-        # This prevents KeyError if the DB was created by an older version of init_db
         existing_columns = [col[1] for col in cursor.execute(f"PRAGMA table_info({TABLE_NAME})").fetchall()]
 
         if 'Photo_Path' not in existing_columns:
@@ -158,9 +160,14 @@ def init_db():
             conn.commit()
             st.info("Added 'Longitude' column to the database.")
 
+        if 'State' not in existing_columns:
+            cursor.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN State TEXT")
+            conn.commit()
+            st.info("Added 'State' column to the database.")
+
     # Ensure the upload directory exists
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    st.session_state.db_initialized = True # Use session state to prevent re-initializing on every rerun
+    st.session_state.db_initialized = True
 
 
 @st.cache_data(ttl=60) # Cache data for 60 seconds to improve performance
@@ -172,7 +179,7 @@ def load_attendance_data():
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
         return df
 
-def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo_file_path, lat=None, lon=None):
+def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo_file_path, lat, lon, state):
     """
     Marks attendance for a person, checking if they've already marked today.
     photo_uploaded_indicator will be 'Yes' or 'No'.
@@ -196,8 +203,8 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo
     with sqlite3.connect(DB_PATH) as conn:
         try:
             conn.execute(f'''
-                INSERT INTO {TABLE_NAME} (Timestamp, Person, Type, Status, Photo_Uploaded, Photo_Path, Latitude, Longitude)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO {TABLE_NAME} (Timestamp, Person, Type, Status, Photo_Uploaded, Photo_Path, Latitude, Longitude, State)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 timestamp_str, # Use the timezone-aware timestamp
                 person,
@@ -206,7 +213,8 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo
                 photo_uploaded_indicator, # 'Photo Uploaded' or 'No Photo'
                 photo_file_path,          # Store the path to the saved photo
                 lat,
-                lon
+                lon,
+                state # Insert the state
             ))
             conn.commit()
             st.success(f"Attendance marked for **{person}** as **{status}**.")
@@ -257,7 +265,6 @@ def delete_record(record_id):
 def convert_df_to_csv_bytes(df):
     """Converts a Pandas DataFrame to a CSV byte stream for download."""
     # Ensure all columns are strings before converting to CSV to prevent issues with mixed types
-    # This is a robust way to handle potential future type issues in columns that might be numeric or other types
     df_copy = df.copy() # Work on a copy to avoid modifying original df for display
     for col in df_copy.columns:
         df_copy[col] = df_copy[col].astype(str)
@@ -288,20 +295,33 @@ st.markdown("---")
 # --- Attendance Marking Section ---
 st.header("Mark Your Attendance")
 
-# Dropdown for names
-person_names = sorted([worker["name"] for worker in ALL_FIELD_WORKERS])
+# Dropdown for State
+states = sorted(list(set([worker["state"] for worker in ALL_FIELD_WORKERS])))
+selected_state = st.selectbox(
+    "Select your State:",
+    options=states,
+    index=0 # Default to the first state
+)
+
+# Filter persons based on selected state
+filtered_persons = [worker for worker in ALL_FIELD_WORKERS if worker["state"] == selected_state]
+person_names = sorted([worker["name"] for worker in filtered_persons])
+
+# Dropdown for names (now filtered by state)
 selected_person = st.selectbox(
     "Select your name:",
     options=person_names,
-    index=0 # Default to the first name
+    index=0 if person_names else None # Default to the first name, or None if list is empty
 )
 
-# Automatically display the role based on selected person
+# Automatically display the role and selected state
 if selected_person:
     person_type = NAME_TO_ROLE_MAP.get(selected_person, "Unknown")
-    st.info(f"**Role:** {person_type}")
+    person_state = NAME_TO_STATE_MAP.get(selected_person, "Unknown")
+    st.info(f"**Role:** {person_type} | **State:** {person_state}")
 else:
     person_type = "Unknown"
+    person_state = "Unknown" # Initialize if no person is selected
 
 st.markdown("---")
 st.subheader("Timestamp Details")
@@ -345,10 +365,10 @@ attendance_status = st.radio(
 )
 
 # Submit Button
-# lat and lon are passed as None, as they are not captured automatically in this setup
 if st.button("Submit Attendance"):
     if selected_person:
-        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, photo_file_path, None, None)
+        # Pass state to mark_attendance function
+        mark_attendance(selected_person, person_type, attendance_status, photo_uploaded_indicator, photo_file_path, None, None, person_state)
     else:
         st.error("Please select your name to mark attendance.")
 
@@ -361,7 +381,7 @@ df_attendance = load_attendance_data()
 
 if not df_attendance.empty:
     st.subheader("Filter Records")
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4) # Added one more column for State filter
 
     # Filter by date
     with col1:
@@ -372,14 +392,20 @@ if not df_attendance.empty:
         end_date = st.date_input("End Date", value=df_attendance['Timestamp'].max().date() if not df_attendance.empty else datetime.now().date())
     with col3:
         # Filter by person
-        all_persons = sorted(df_attendance['Person'].unique())
-        selected_persons_filter = st.multiselect("Filter by Person(s):", options=all_persons, default=all_persons)
+        all_persons_filter = sorted(df_attendance['Person'].unique())
+        selected_persons_filter = st.multiselect("Filter by Person(s):", options=all_persons_filter, default=all_persons_filter)
+    with col4:
+        # Filter by state
+        all_states_filter = sorted(df_attendance['State'].unique())
+        selected_states_filter = st.multiselect("Filter by State(s):", options=all_states_filter, default=all_states_filter)
+
 
     # Apply filters
     filtered_df = df_attendance[
         (df_attendance['Timestamp'].dt.date >= start_date) &
         (df_attendance['Timestamp'].dt.date <= end_date) &
-        (df_attendance['Person'].isin(selected_persons_filter))
+        (df_attendance['Person'].isin(selected_persons_filter)) &
+        (df_attendance['State'].isin(selected_states_filter)) # Apply state filter
     ].copy() # Use .copy() to avoid SettingWithCopyWarning
 
     st.markdown("### Filtered Attendance Data")
@@ -477,8 +503,10 @@ if not df_attendance.empty:
             edit_type = st.selectbox("Type:", options=["FA", "CRP", "Unknown"], index=["FA", "CRP", "Unknown"].index(record_to_edit['Type']) if record_to_edit['Type'] in ["FA", "CRP", "Unknown"] else 2, key=f"edit_type_{selected_record_id_manage}")
             edit_status = st.selectbox("Status:", options=["Present", "On Leave", "Absent"], index=["Present", "On Leave", "Absent"].index(record_to_edit['Status']) if record_to_edit['Status'] in ["Present", "On Leave", "Absent"] else 0, key=f"edit_status_{selected_record_id_manage}")
             
+            # New field for State
+            edit_state = st.selectbox("State:", options=states + ["Unknown"], index=states.index(record_to_edit['State']) if record_to_edit['State'] in states else len(states), key=f"edit_state_{selected_record_id_manage}")
+            
             # The 'Photo_Uploaded' column indicates if a photo was provided at the time of marking.
-            # We don't change the photo itself here, just its status indicator.
             edit_photo_uploaded = st.selectbox(
                 "Photo Uploaded Status:",
                 options=["Photo Uploaded", "No Photo", "Photo Upload Failed"],
@@ -502,8 +530,8 @@ if not df_attendance.empty:
                         "Status": edit_status,
                         "Photo_Uploaded": edit_photo_uploaded,
                         "Latitude": edit_lat,
-                        "Longitude": edit_lon
-                        # Photo_Path is not updated via this form as it's handled on upload
+                        "Longitude": edit_lon,
+                        "State": edit_state # Include State in the update
                     }
                     update_record(selected_record_id_manage, fields_to_update)
             with col_u2:
