@@ -276,7 +276,7 @@ def create_zip_of_photos(photo_paths):
     return zip_buffer.getvalue()
 
 # --- Run DB init on load ---
-st.set_page_config(layout="centered", page_title="Field Worker Attendance")
+st.set_page_config(layout="centered", page_title="Field Staff Attendance App")
 
 # Initialize database only once
 if 'db_initialized' not in st.session_state:
