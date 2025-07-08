@@ -161,12 +161,14 @@ def init_db():
             st.info("Added 'Longitude' column to the database.")
 
         if 'State' not in existing_columns:
-            cursor.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN State TEXT")
+            # When adding 'State' column, backfill existing rows with a default value
+            cursor.execute(f"ALTER TABLE {TABLE_NAME} ADD COLUMN State TEXT DEFAULT 'Unknown'")
             conn.commit()
-            st.info("Added 'State' column to the database.")
+            st.info("Added 'State' column to the database and backfilled existing records with 'Unknown'.")
 
     # Ensure the upload directory exists
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    # Set a session state variable to indicate DB is initialized
     st.session_state.db_initialized = True
 
 
@@ -177,6 +179,10 @@ def load_attendance_data():
         df = pd.read_sql_query(f"SELECT * FROM {TABLE_NAME}", conn)
         # Convert Timestamp column to datetime objects for easier manipulation
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
+        # Ensure 'State' column exists and fill NaN with 'Unknown' for display/filtering safety
+        if 'State' not in df.columns:
+            df['State'] = 'Unknown'
+        df['State'] = df['State'].fillna('Unknown')
         return df
 
 def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo_file_path, lat, lon, state):
@@ -186,8 +192,11 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo
     photo_file_path will be the path to the saved photo file or None.
     """
     # Clear cache to ensure fresh data is loaded after marking attendance
-    st.cache_data.clear()
+    # st.cache_data.clear() # Moved clear to the end of successful operation to avoid clearing before check
     df = load_attendance_data()
+    
+    # Ensure 'Timestamp' column is in datetime format for comparison
+    df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
     today_str = datetime.now().strftime('%Y-%m-%d')
 
     # Check if attendance is already marked for today for this person
@@ -218,7 +227,7 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo
             ))
             conn.commit()
             st.success(f"Attendance marked for **{person}** as **{status}**.")
-            st.cache_data.clear() # Clear cache again after successful insert
+            st.cache_data.clear() # Clear cache after successful insert
             return True
         except Exception as e:
             st.error(f"Error marking attendance: {e}")
@@ -267,7 +276,8 @@ def convert_df_to_csv_bytes(df):
     # Ensure all columns are strings before converting to CSV to prevent issues with mixed types
     df_copy = df.copy() # Work on a copy to avoid modifying original df for display
     for col in df_copy.columns:
-        df_copy[col] = df_copy[col].astype(str)
+        # Convert non-string types to string, handling NaNs
+        df_copy[col] = df_copy[col].apply(lambda x: str(x) if pd.notna(x) else '')
     return df_copy.to_csv(index=False).encode("utf-8")
 
 @st.cache_data
@@ -285,7 +295,7 @@ def create_zip_of_photos(photo_paths):
 # --- Run DB init on load ---
 st.set_page_config(layout="centered", page_title="Field Staff Attendance App")
 
-# Initialize database only once
+# Initialize database only once using st.session_state
 if 'db_initialized' not in st.session_state:
     init_db()
 
@@ -385,11 +395,14 @@ if not df_attendance.empty:
 
     # Filter by date
     with col1:
-        # Default start date to 30 days ago if min date is much older
-        default_start_date = (datetime.now().date() - timedelta(days=30))
-        start_date = st.date_input("Start Date", value=max(df_attendance['Timestamp'].min().date(), default_start_date) if not df_attendance.empty else datetime.now().date())
+        # Default start date to 30 days ago, ensuring it doesn't go before the earliest record
+        min_date_available = df_attendance['Timestamp'].min().date() if not df_attendance['Timestamp'].empty else datetime.now().date()
+        default_start_date = max(min_date_available, (datetime.now().date() - timedelta(days=30)))
+        start_date = st.date_input("Start Date", value=default_start_date)
     with col2:
-        end_date = st.date_input("End Date", value=df_attendance['Timestamp'].max().date() if not df_attendance.empty else datetime.now().date())
+        # Default end date to the latest record date or current date
+        max_date_available = df_attendance['Timestamp'].max().date() if not df_attendance['Timestamp'].empty else datetime.now().date()
+        end_date = st.date_input("End Date", value=max_date_available)
     with col3:
         # Filter by person
         all_persons_filter = sorted(df_attendance['Person'].unique())
@@ -401,6 +414,8 @@ if not df_attendance.empty:
 
 
     # Apply filters
+    # Ensure Timestamp column is datetime for comparison
+    df_attendance['Timestamp'] = pd.to_datetime(df_attendance['Timestamp'], errors='coerce')
     filtered_df = df_attendance[
         (df_attendance['Timestamp'].dt.date >= start_date) &
         (df_attendance['Timestamp'].dt.date <= end_date) &
@@ -504,7 +519,9 @@ if not df_attendance.empty:
             edit_status = st.selectbox("Status:", options=["Present", "On Leave", "Absent"], index=["Present", "On Leave", "Absent"].index(record_to_edit['Status']) if record_to_edit['Status'] in ["Present", "On Leave", "Absent"] else 0, key=f"edit_status_{selected_record_id_manage}")
             
             # New field for State
-            edit_state = st.selectbox("State:", options=states + ["Unknown"], index=states.index(record_to_edit['State']) if record_to_edit['State'] in states else len(states), key=f"edit_state_{selected_record_id_manage}")
+            # Ensure 'Unknown' is an option if the existing state isn't in the predefined list
+            state_options_for_edit = sorted(list(set(states + [record_to_edit['State']]))) if pd.notna(record_to_edit['State']) else states + ["Unknown"]
+            edit_state = st.selectbox("State:", options=state_options_for_edit, index=state_options_for_edit.index(record_to_edit['State']) if pd.notna(record_to_edit['State']) and record_to_edit['State'] in state_options_for_edit else (len(state_options_for_edit) -1), key=f"edit_state_{selected_record_id_manage}")
             
             # The 'Photo_Uploaded' column indicates if a photo was provided at the time of marking.
             edit_photo_uploaded = st.selectbox(
