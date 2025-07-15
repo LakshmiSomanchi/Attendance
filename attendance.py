@@ -191,16 +191,15 @@ def mark_attendance(person, person_type, status, photo_uploaded_indicator, photo
     photo_uploaded_indicator will be 'Yes' or 'No'.
     photo_file_path will be the path to the saved photo file or None.
     """
-    # Clear cache to ensure fresh data is loaded after marking attendance
-    # st.cache_data.clear() # Moved clear to the end of successful operation to avoid clearing before check
     df = load_attendance_data()
     
-    # Ensure 'Timestamp' column is in datetime format for comparison
-    df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
+    # Ensure 'Timestamp' column is in datetime format for comparison and filter out NaT values
+    # This prevents TypeError if NaT values are present after pd.to_datetime(errors='coerce')
+    df_valid_timestamps = df.dropna(subset=['Timestamp'])
     today_str = datetime.now().strftime('%Y-%m-%d')
 
     # Check if attendance is already marked for today for this person
-    if not df[(df['Timestamp'].dt.strftime('%Y-%m-%d') == today_str) & (df['Person'] == person)].empty:
+    if not df_valid_timestamps[(df_valid_timestamps['Timestamp'].dt.strftime('%Y-%m-%d') == today_str) & (df_valid_timestamps['Person'] == person)].empty:
         st.warning(f"Attendance already marked today for **{person}**.")
         return False
 
@@ -310,7 +309,7 @@ states = sorted(list(set([worker["state"] for worker in ALL_FIELD_WORKERS])))
 selected_state = st.selectbox(
     "Select your State:",
     options=states,
-    index=0 # Default to the first state
+    index=0 if states else None # Default to the first state, or None if list is empty
 )
 
 # Filter persons based on selected state
@@ -395,32 +394,38 @@ if not df_attendance.empty:
 
     # Filter by date
     with col1:
-        # Default start date to 30 days ago, ensuring it doesn't go before the earliest record
-        min_date_available = df_attendance['Timestamp'].min().date() if not df_attendance['Timestamp'].empty else datetime.now().date()
+        # Default start date to 30 days ago, ensuring it doesn't go before the earliest valid record
+        # Filter out NaT before finding min date
+        valid_timestamps = df_attendance['Timestamp'].dropna()
+        min_date_available = valid_timestamps.min().date() if not valid_timestamps.empty else datetime.now().date()
         default_start_date = max(min_date_available, (datetime.now().date() - timedelta(days=30)))
         start_date = st.date_input("Start Date", value=default_start_date)
     with col2:
-        # Default end date to the latest record date or current date
-        max_date_available = df_attendance['Timestamp'].max().date() if not df_attendance['Timestamp'].empty else datetime.now().date()
+        # Default end date to the latest valid record date or current date
+        max_date_available = valid_timestamps.max().date() if not valid_timestamps.empty else datetime.now().date()
         end_date = st.date_input("End Date", value=max_date_available)
     with col3:
         # Filter by person
         all_persons_filter = sorted(df_attendance['Person'].unique())
-        selected_persons_filter = st.multiselect("Filter by Person(s):", options=all_persons_filter, default=all_persons_filter)
+        # Ensure default is an empty list if no persons, or all persons
+        selected_persons_filter = st.multiselect("Filter by Person(s):", options=all_persons_filter, default=all_persons_filter if all_persons_filter else [])
     with col4:
         # Filter by state
         all_states_filter = sorted(df_attendance['State'].unique())
-        selected_states_filter = st.multiselect("Filter by State(s):", options=all_states_filter, default=all_states_filter)
+        # Ensure default is an empty list if no states, or all states
+        selected_states_filter = st.multiselect("Filter by State(s):", options=all_states_filter, default=all_states_filter if all_states_filter else [])
 
 
     # Apply filters
-    # Ensure Timestamp column is datetime for comparison
-    df_attendance['Timestamp'] = pd.to_datetime(df_attendance['Timestamp'], errors='coerce')
-    filtered_df = df_attendance[
-        (df_attendance['Timestamp'].dt.date >= start_date) &
-        (df_attendance['Timestamp'].dt.date <= end_date) &
-        (df_attendance['Person'].isin(selected_persons_filter)) &
-        (df_attendance['State'].isin(selected_states_filter)) # Apply state filter
+    # Ensure Timestamp column is datetime for comparison and filter out NaT values before filtering
+    filtered_df = df_attendance.dropna(subset=['Timestamp']).copy() # Filter out NaT values first
+    
+    # Now apply the rest of the filters
+    filtered_df = filtered_df[
+        (filtered_df['Timestamp'].dt.date >= start_date) &
+        (filtered_df['Timestamp'].dt.date <= end_date) &
+        (filtered_df['Person'].isin(selected_persons_filter)) &
+        (filtered_df['State'].isin(selected_states_filter))
     ].copy() # Use .copy() to avoid SettingWithCopyWarning
 
     st.markdown("### Filtered Attendance Data")
@@ -461,7 +466,9 @@ if not df_attendance.empty:
         # Create a more descriptive label for the selectbox
         photo_options = []
         for index, row in records_with_photos.iterrows():
-            option_label = f"ID: {row['id']} - {row['Person']} ({row['Timestamp'].strftime('%Y-%m-%d %H:%M')})"
+            # Ensure Timestamp is a datetime object before formatting
+            timestamp_str_for_label = row['Timestamp'].strftime('%Y-%m-%d %H:%M') if pd.notna(row['Timestamp']) else "Invalid Date"
+            option_label = f"ID: {row['id']} - {row['Person']} ({timestamp_str_for_label})"
             photo_options.append({"id": row['id'], "label": option_label, "path": row['Photo_Path'], "person": row['Person'], "timestamp": row['Timestamp']})
 
         if photo_options:
@@ -479,8 +486,10 @@ if not df_attendance.empty:
                 record_id = selected_photo_option['id']
 
                 if os.path.exists(photo_path):
-                    st.write(f"Photo for **{person_name}** (Record ID: {record_id}, Date: {record_timestamp.strftime('%Y-%m-%d')}):")
-                    st.image(photo_path, caption=f"{person_name}'s photo from {record_timestamp.strftime('%Y-%m-%d %H:%M')}", width=300)
+                    # Ensure record_timestamp is a datetime object before formatting
+                    timestamp_display = record_timestamp.strftime('%Y-%m-%d %H:%M') if pd.notna(record_timestamp) else "Invalid Date"
+                    st.write(f"Photo for **{person_name}** (Record ID: {record_id}, Date: {timestamp_display}):")
+                    st.image(photo_path, caption=f"{person_name}'s photo from {timestamp_display}", width=300)
                     
                     with open(photo_path, "rb") as file:
                         st.download_button(
@@ -520,8 +529,8 @@ if not df_attendance.empty:
             
             # New field for State
             # Ensure 'Unknown' is an option if the existing state isn't in the predefined list
-            state_options_for_edit = sorted(list(set(states + [record_to_edit['State']]))) if pd.notna(record_to_edit['State']) else states + ["Unknown"]
-            edit_state = st.selectbox("State:", options=state_options_for_edit, index=state_options_for_edit.index(record_to_edit['State']) if pd.notna(record_to_edit['State']) and record_to_edit['State'] in state_options_for_edit else (len(state_options_for_edit) -1), key=f"edit_state_{selected_record_id_manage}")
+            state_options_for_edit = sorted(list(set(states + ([record_to_edit['State']] if pd.notna(record_to_edit['State']) else ["Unknown"]))))
+            edit_state = st.selectbox("State:", options=state_options_for_edit, index=state_options_for_edit.index(record_to_edit['State']) if pd.notna(record_to_edit['State']) and record_to_edit['State'] in state_options_for_edit else (len(state_options_for_edit) -1 if "Unknown" in state_options_for_edit else 0), key=f"edit_state_{selected_record_id_manage}")
             
             # The 'Photo_Uploaded' column indicates if a photo was provided at the time of marking.
             edit_photo_uploaded = st.selectbox(
