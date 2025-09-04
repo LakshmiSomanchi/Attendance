@@ -12,13 +12,11 @@ import zipfile
 DB_PATH = "attendance.db"
 TABLE_NAME = "attendance"
 UPLOAD_FOLDER = "uploaded_photos"
-# --- Security: In a real app, use st.secrets or environment variables for the password ---
-ADMIN_PASSWORD = "admin" 
 
 # --- App Constants ---
 ATTENDANCE_STATUSES = ["Present", "On Leave", "Absent"]
 PHOTO_STATUSES = ["Photo Uploaded", "No Photo", "Photo Upload Failed"]
-ROLES = ["CRP", "FA", "Unknown"]
+ROLES = ["CRP", "FA"]
 
 # --- Helper Functions for Data ---
 
@@ -375,4 +373,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
